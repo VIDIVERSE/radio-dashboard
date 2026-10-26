@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="radio-dashboard">
+<title>Radio-Dashboard – Einrichtung</title>
+<style>
+:root{--bg:#eef1f6;--card:#fff;--line:#dde2ec;--txt:#282828;--mut:#5d6575;--acc:#e8312f;--ok:#1b8a4b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,Segoe UI,Arial,sans-serif;font-size:15px}
+header{background:var(--card);border-bottom:4px solid var(--acc);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:20px}header a{color:var(--mut)}
+main{max-width:860px;margin:0 auto;padding:18px 16px 120px;display:grid;gap:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px}
+section h2{margin:0;font-size:17px;display:flex;gap:8px;align-items:center}
+section h2 .n{background:var(--acc);color:#fff;border-radius:50%;width:26px;height:26px;display:inline-grid;place-items:center;font-size:14px;flex:none}
+.intro{background:transparent;border:none;padding:0}
+.intro p{margin:0;color:var(--mut);line-height:1.5}
+label{display:grid;gap:4px;font-weight:600;font-size:14px}
+label small,.hint{font-weight:400;color:var(--mut);font-size:12px;line-height:1.4}
+input,select,textarea,button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+input[type=checkbox]{width:auto}
+button{cursor:pointer}button:hover{border-color:var(--acc)}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;padding:11px 22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.check{display:flex;gap:8px;align-items:center;font-weight:600}
+.rows{display:grid;gap:6px}
+.r{display:grid;grid-template-columns:minmax(120px,1fr) minmax(200px,2.2fr) auto auto;gap:6px;align-items:center}
+.r.link{grid-template-columns:minmax(120px,1fr) minmax(200px,2.2fr) auto}
+@media(max-width:640px){.r,.r.link{grid-template-columns:1fr}}
+.r label.f{display:flex;gap:4px;font-weight:400;font-size:12px;white-space:nowrap}
+#geoList{display:grid;gap:4px}#geoList button{text-align:left}
+#logoPrev{max-height:70px;max-width:260px;display:block;margin-top:4px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 24px;display:flex;gap:12px;align-items:center;justify-content:flex-end;z-index:5}
+#msg{margin-right:auto;font-weight:600}#msg.err{color:#c0392b}#msg.ok{color:var(--ok)}
+.done{text-align:center;padding:40px 20px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><h1 id="title">📻 Radio-Dashboard einrichten</h1><a href="/" id="back" hidden>← Zurück zum Dashboard</a></header>
+<main id="form">
+  <section class="intro"><p id="introText">Willkommen! In ein paar Schritten ist das Dashboard für deinen Sender eingerichtet. Alles lässt sich später unter <b>⚙️ Einstellungen</b> wieder ändern. Pflichtfelder sind mit * markiert.</p></section>
+
+  <section>
+    <h2><span class="n">1</span> Sender</h2>
+    <div class="grid">
+      <label>Name des Senders *<input id="stName" maxlength="60" placeholder="z. B. Radio Musterstadt"></label>
+      <label>Untertitel<input id="stTag" maxlength="80" placeholder="Info-Dashboard"></label>
+      <label>Webseite<input id="stWeb" placeholder="https://…"></label>
+      <label>Akzentfarbe<input id="stColor" type="color" value="#e8312f" style="height:40px;padding:3px"></label>
+    </div>
+    <label>Logo <small>PNG, JPG, SVG oder WebP – wird automatisch verkleinert.</small>
+      <span class="row"><input id="logoFile" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"><button id="logoDel" type="button" hidden>Logo entfernen</button></span>
+      <img id="logoPrev" alt="" hidden></label>
+  </section>
+
+  <section id="adminSec">
+    <h2><span class="n">2</span> Administrator</h2>
+    <p class="hint">Dein eigenes Konto. Weitere Teammitglieder legst du danach im Dashboard unter „👥 Benutzer“ an.</p>
+    <div class="grid">
+      <label>Dein Name *<input id="adName" maxlength="60" placeholder="Vor- und Nachname" autocomplete="name"></label>
+      <label>Benutzername *<input id="adUser" maxlength="30" placeholder="z. B. max" autocapitalize="none" autocomplete="username"><small>Kleinbuchstaben, Zahlen, . _ -</small></label>
+      <label>Passwort *<input id="adPw" type="password" placeholder="mindestens 6 Zeichen" autocomplete="new-password"></label>
+      <label>Passwort wiederholen *<input id="adPw2" type="password" autocomplete="new-password"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span> Sendegebiet</h2>
+    <label>Ort suchen <small>Bestimmt Wetter, Umkreis für Verkehrsmeldungen und die Vorschläge für Nachrichtenquellen.</small>
+      <span class="row"><input id="geoQ" placeholder="z. B. Elmshorn" style="flex:1"><button id="geoGo" type="button">🔍 Suchen</button></span></label>
+    <div id="geoList"></div>
+    <div class="grid">
+      <label>Sendeort *<input id="locName" maxlength="60"></label>
+      <label>Landkreis / Region<input id="locRegion" maxlength="60" placeholder="z. B. Kreis Pinneberg"></label>
+      <label>Bundesland <small>für die Feiertage</small><select id="locState"></select></label>
+      <label>Koordinaten <small>für Wetter und Umkreis</small><span class="row"><input id="locLat" style="width:48%" placeholder="Breite"><input id="locLon" style="width:48%" placeholder="Länge"></span></label>
+    </div>
+    <label>Weitere Orte im Sendegebiet <small>Komma-getrennt. Werden für die Ortsfilter, die Nachrichtensuche und die Baustellen-Suche genutzt.</small>
+      <input id="locPlaces" placeholder="z. B. Pinneberg, Uetersen, Tornesch"></label>
+    <label>Zusätzliche Stichworte <small>Komma-getrennt, z. B. Flüsse oder Ortsteile. Meldungen aus Quellen mit „nur mit Ortsbezug“ müssen einen Ort oder ein Stichwort enthalten.</small>
+      <input id="locKeys"></label>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span> Nachrichtenquellen</h2>
+    <p class="hint">Je Zeile ein Name und entweder <b>Suchbegriffe für Google News</b> (z. B. <code>"Musterstadt" when:2d</code>) oder die <b>Adresse eines RSS-Feeds</b> (beginnt mit https://). „Nur mit Ortsbezug“ eignet sich für überregionale Feeds.</p>
+    <div class="rows" id="newsRows"></div>
+    <div class="row"><button type="button" id="newsAdd">＋ Quelle</button><button type="button" id="suggest">✨ Vorschläge aus dem Sendegebiet erzeugen</button></div>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span> Verkehr &amp; Blitzer</h2>
+    <div class="grid">
+      <label>Autobahnen im Umfeld <small>Komma-getrennt, z. B. A7, A23 – Daten der Autobahn GmbH</small><input id="trRoads"></label>
+      <label>Alarm bei neuen Sperrungen auf <small>Teilmenge davon, z. B. A7</small><input id="trAlert"></label>
+      <label>Umkreis in km<input id="trRadius" type="number" min="5" max="200"></label>
+    </div>
+    <label>Links im Reiter „Baustellen“ <small>z. B. die Seite der Stadt</small></label>
+    <div class="rows" id="trLinks"></div><div class="row"><button type="button" id="trLinkAdd">＋ Link</button></div>
+    <label>Blitzer-Meldungen (Nachrichtensuche)</label>
+    <div class="rows" id="bzRows"></div><div class="row"><button type="button" id="bzAdd">＋ Quelle</button></div>
+    <label>Links im Reiter „Blitzer“ <small>z. B. Polizei-Pressestelle</small></label>
+    <div class="rows" id="bzLinks"></div><div class="row"><button type="button" id="bzLinkAdd">＋ Link</button></div>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span> Sport</h2>
+    <div class="row" id="lgBox"></div>
+    <label>Vereine hervorheben <small>Komma-getrennt, Teil des Vereinsnamens genügt, z. B. Hamburger SV, St. Pauli</small><input id="spFavs"></label>
+    <label>Zusätzliche Sport-Nachrichten <small>Lokaler Sport aus deinen Orten wird automatisch gesucht.</small></label>
+    <div class="rows" id="spRows"></div><div class="row"><button type="button" id="spAdd">＋ Quelle</button></div>
+  </section>
+
+  <section>
+    <h2><span class="n">7</span> Sendetechnik</h2>
+    <div class="grid">
+      <label>Hörerzahl abrufen von<select id="lsType">
+        <option value="none">– nicht anzeigen –</option><option value="lautfm">laut.fm</option><option value="icecast">Icecast-Server</option><option value="shoutcast">Shoutcast-Server (v2)</option></select></label>
+      <label id="lsUrlL">Adresse<input id="lsUrl"><small id="lsHint"></small></label>
+    </div>
+    <label>NowPlaying-Datei der Sendesoftware <small>Die Textdatei, in die z. B. RadioDJ, mAirList oder SAM den laufenden Titel schreibt – z. B. <code>C:/RadioDJv2/NowPlaying.txt</code>. Leer lassen, wenn es keine gibt. Daraus entstehen der Sendeverlauf, die Stille-Warnung und der Werbe-Timer.</small>
+      <input id="npPath" placeholder="C:/…/NowPlaying.txt"></label>
+    <div class="grid">
+      <label>Werbe-Marker <small>Text, der beim Werbeblock in der Datei steht</small><input id="mkName" placeholder="START_AD_BREAK"></label>
+      <label>Werbeblock alle … Minuten <small>0 = kein Werbe-Timer</small><input id="mkInt" type="number" min="0" max="120"></label>
+      <label>Vorwarnung (Min.)<input id="mkLead" type="number" min="0" max="30"></label>
+      <label>Toleranz (Sek.) <small>so lange darf der Marker zu spät kommen</small><input id="mkGrace" type="number" min="30" max="1800"></label>
+      <label>Stille-Warnung nach … Minuten <small>ohne Titelwechsel; 0 = aus</small><input id="daMin" type="number" min="0" max="120"></label>
+      <label>Sendeverlauf aufbewahren (Tage)<input id="plDays" type="number" min="1" max="366"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">8</span> Links &amp; Netzwerk</h2>
+    <label>Start-Auswahl im Reiter „Links“ <small>z. B. Stream-Seite, Admin-Oberfläche des Streamhosters. Das Team kann die Liste im Dashboard selbst ändern.</small></label>
+    <div class="rows" id="qlRows"></div><div class="row"><button type="button" id="qlAdd">＋ Link</button></div>
+    <label class="check"><input type="checkbox" id="net"> Auch von anderen Rechnern im Netzwerk erreichbar</label>
+    <p class="hint" style="margin-top:-6px">Aus: Das Dashboard läuft nur auf diesem Rechner (sicherer). An: Das Team kann es im Studio-Netzwerk über <code>http://&lt;Name-dieses-Rechners&gt;:Port</code> öffnen. Die Verbindung ist nicht verschlüsselt – nur in vertrauenswürdigen Netzen einschalten. Änderung wirkt nach einem Neustart des Servers.</p>
+    <label style="max-width:220px">Port<input id="port" type="number" min="1024" max="65000"></label>
+  </section>
+</main>
+<main id="doneBox" hidden><section class="done"><h2 style="justify-content:center">✅ Gespeichert</h2><p id="doneText"></p><p><a href="/" class="primary" style="display:inline-block;background:var(--acc);color:#fff;padding:11px 22px;border-radius:8px;text-decoration:none;font-weight:700">Zum Dashboard</a></p></section></main>
+<div class="bar" id="bar"><span id="msg"></span><button class="primary" id="save">Einrichtung abschließen</button></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const STATES={"":"– bitte wählen –",BW:"Baden-Württemberg",BY:"Bayern",BE:"Berlin",BB:"Brandenburg",HB:"Bremen",HH:"Hamburg",HE:"Hessen",MV:"Mecklenburg-Vorpommern",
+  NI:"Niedersachsen",NW:"Nordrhein-Westfalen",RP:"Rheinland-Pfalz",SL:"Saarland",SN:"Sachsen",ST:"Sachsen-Anhalt",SH:"Schleswig-Holstein",TH:"Thüringen"};
+const LEAGUES={bl1:"Bundesliga",bl2:"2. Bundesliga",bl3:"3. Liga"};
+const LS_HINT={none:"",lautfm:"Stationsname bei laut.fm, z. B. meinradio (oder die Adresse laut.fm/meinradio)",
+  icecast:"Adresse der Status-Seite, z. B. https://stream.example.de:8000/status-json.xsl",shoutcast:"z. B. https://stream.example.de:8000/stats?sid=1&json=1"};
+let SETUP=true, LOGO="";
+Object.entries(STATES).forEach(([k,v])=>$("locState").add(new Option(v,k)));
+Object.entries(LEAGUES).forEach(([k,v])=>$("lgBox").insertAdjacentHTML("beforeend",'<label class="check"><input type="checkbox" value="'+k+'"> '+v+'</label>'));
+const list=s=>String(s||"").split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);
+const quote=p=>'"'+p+'"';
+
+/* ---------- Zeilen-Editoren für Quellen und Links ---------- */
+function feedRow(box,f={}){
+  const r=document.createElement("div"); r.className="r";
+  r.innerHTML='<input class="n" placeholder="Name" maxlength="60"><input class="q" placeholder="Suchbegriffe oder https://…/rss"><label class="f"><input type="checkbox" class="fl"> nur mit Ortsbezug</label><button type="button" title="Entfernen">✕</button>';
+  r.querySelector(".n").value=f.name||""; r.querySelector(".q").value=f.url||f.q||""; r.querySelector(".fl").checked=!!f.filter;
+  r.querySelector("button").onclick=()=>r.remove(); $(box).appendChild(r);
+}
+function linkRow(box,l={}){
+  const r=document.createElement("div"); r.className="r link";
+  r.innerHTML='<input class="n" placeholder="Name" maxlength="80"><input class="u" placeholder="https://…"><button type="button" title="Entfernen">✕</button>';
+  r.querySelector(".n").value=l.n||""; r.querySelector(".u").value=l.u||""; r.querySelector("button").onclick=()=>r.remove(); $(box).appendChild(r);
+}
+const feeds=box=>[...$(box).children].map(r=>{ const n=r.querySelector(".n").value.trim(), q=r.querySelector(".q").value.trim();
+  return /^https?:\/\//i.test(q)?{name:n,url:q,filter:r.querySelector(".fl").checked}:{name:n,q,filter:r.querySelector(".fl").checked}; }).filter(f=>f.name&&(f.q||f.url));
+const links=box=>[...$(box).children].map(r=>{ let u=r.querySelector(".u").value.trim(); if(u&&!/^https?:\/\//i.test(u)) u="https://"+u;
+  return {n:r.querySelector(".n").value.trim(),u}; }).filter(l=>l.u);
+[["newsAdd","newsRows",feedRow],["bzAdd","bzRows",feedRow],["spAdd","spRows",feedRow],["trLinkAdd","trLinks",linkRow],["bzLinkAdd","bzLinks",linkRow],["qlAdd","qlRows",linkRow]]
+  .forEach(([b,box,fn])=>$(b).onclick=()=>fn(box));
+
+/* ---------- Ortssuche (Open-Meteo Geocoding, kostenlos) ---------- */
+const STATE_BY_NAME=Object.fromEntries(Object.entries(STATES).map(([k,v])=>[v,k]));
+async function geo(){
+  const q=$("geoQ").value.trim(), box=$("geoList"); if(!q) return; box.textContent="Suche …";
+  try{
+    const j=await (await fetch("https://geocoding-api.open-meteo.com/v1/search?count=8&language=de&format=json&countryCode=DE&name="+encodeURIComponent(q))).json();
+    box.innerHTML=""; if(!j.results||!j.results.length){ box.textContent="Nichts gefunden – Ort und Koordinaten bitte von Hand eintragen."; return; }
+    j.results.forEach(g=>{ const b=document.createElement("button"); b.type="button"; b.textContent="📍 "+[g.name,g.admin3!==g.name?g.admin3:"",g.admin2,g.admin1].filter(Boolean).join(", ");
+      b.onclick=()=>{ $("locName").value=g.name; $("locRegion").value=g.admin2||(g.admin3!==g.name&&g.admin3)||""; $("locState").value=STATE_BY_NAME[g.admin1]||"";
+        $("locLat").value=g.latitude.toFixed(4); $("locLon").value=g.longitude.toFixed(4); box.innerHTML="";
+        if(!feeds("newsRows").length) suggest(); };
+      box.appendChild(b); });
+  }catch(e){ box.textContent="Ortssuche nicht erreichbar – bitte von Hand eintragen."; }
+}
+$("geoGo").onclick=geo; $("geoQ").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); geo(); } });
+
+/* ---------- Vorschläge aus dem Sendegebiet ---------- */
+function suggest(){
+  const town=$("locName").value.trim(), region=$("locRegion").value.trim(), places=list($("locPlaces").value).slice(0,8);
+  if(!town){ msg("Bitte zuerst den Sendeort eintragen.",true); return; }
+  if((feeds("newsRows").length||feeds("bzRows").length)&&!confirm("Vorhandene Nachrichten- und Blitzer-Quellen durch Vorschläge ersetzen?")) return;
+  $("newsRows").innerHTML=""; $("bzRows").innerHTML="";
+  feedRow("newsRows",{name:town+" (alle Medien)",q:quote(town)+" when:2d"});
+  if(region) feedRow("newsRows",{name:region,q:quote(region)+" when:2d"});
+  if(places.length) feedRow("newsRows",{name:"Umgebung",q:"("+places.map(quote).join(" OR ")+") when:2d"});
+  feedRow("bzRows",{name:"Blitzer "+(region||town),q:"(Blitzer OR Geschwindigkeitskontrolle OR Radarkontrolle) ("+[town,region].filter(Boolean).map(quote).join(" OR ")+") when:7d"});
+  if(!links("bzLinks").length) linkRow("bzLinks",{n:"Polizeimeldungen "+(region||town),u:"https://www.presseportal.de/blaulicht/r/"+encodeURIComponent(region||town)});
+  msg("Vorschläge eingetragen – gern noch anpassen.",false);
+}
+$("suggest").onclick=suggest;
+
+/* ---------- Logo ---------- */
+function showLogo(){ $("logoPrev").hidden=!LOGO; if(LOGO) $("logoPrev").src=LOGO; $("logoDel").hidden=!LOGO; }
+$("logoDel").onclick=()=>{ LOGO=""; $("logoFile").value=""; showLogo(); };
+$("logoFile").onchange=()=>{
+  const f=$("logoFile").files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    if(f.type==="image/svg+xml"){ if(rd.result.length>600000){ msg("Die SVG-Datei ist zu groß (max. ca. 450 KB).",true); return; } LOGO=rd.result; showLogo(); return; }
+    const img=new Image(); img.onload=()=>{   // auf max. 900 × 300 Pixel verkleinern
+      const s=Math.min(1,900/img.width,300/img.height), c=document.createElement("canvas"); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height); LOGO=c.toDataURL("image/png"); if(LOGO.length>800000) LOGO=c.toDataURL("image/webp",.9); showLogo(); };
+    img.onerror=()=>msg("Das Bild konnte nicht gelesen werden.",true); img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+};
+
+/* ---------- Hörerzahl-Quelle ---------- */
+function lsUi(){ const t=$("lsType").value; $("lsUrlL").hidden=t==="none"; $("lsHint").textContent=LS_HINT[t]; $("lsUrl").placeholder=t==="lautfm"?"meinradio":"https://…"; }
+$("lsType").onchange=lsUi;
+$("stColor").oninput=()=>document.documentElement.style.setProperty("--acc",$("stColor").value);
+
+/* ---------- Formular füllen / auslesen ---------- */
+function fill(c){
+  $("stName").value=c.station.name; $("stTag").value=c.station.tagline; $("stWeb").value=c.station.website; $("stColor").value=c.station.color; $("stColor").oninput();
+  LOGO=c.logo||""; showLogo();
+  const L=c.location; $("locName").value=L.name; $("locRegion").value=L.region; $("locState").value=L.state;
+  $("locLat").value=L.name?L.lat:""; $("locLon").value=L.name?L.lon:""; $("locPlaces").value=L.places.join(", "); $("locKeys").value=L.keywords.join(", ");
+  ["newsRows","bzRows","spRows","trLinks","bzLinks","qlRows"].forEach(b=>$(b).innerHTML="");
+  c.news.forEach(f=>feedRow("newsRows",f)); c.blitz.feeds.forEach(f=>feedRow("bzRows",f)); c.sport.feeds.forEach(f=>feedRow("spRows",f));
+  c.traffic.links.forEach(l=>linkRow("trLinks",l)); c.blitz.links.forEach(l=>linkRow("bzLinks",l)); c.links.forEach(l=>linkRow("qlRows",l));
+  $("trRoads").value=c.traffic.roads.join(", "); $("trAlert").value=c.traffic.alert.join(", "); $("trRadius").value=c.traffic.radius;
+  $("lgBox").querySelectorAll("input").forEach(i=>i.checked=c.sport.leagues.includes(i.value)); $("spFavs").value=c.sport.favs.join(", ");
+  const R=c.radio; $("lsType").value=R.listeners.type; $("lsUrl").value=R.listeners.url; lsUi();
+  $("npPath").value=R.nowplaying; $("mkName").value=R.marker; $("mkInt").value=R.interval; $("mkLead").value=R.lead; $("mkGrace").value=R.grace;
+  $("daMin").value=R.deadair; $("plDays").value=R.playlog_days; $("net").checked=c.network; $("port").value=c.port;
+}
+function read(){
+  return {station:{name:$("stName").value.trim(),tagline:$("stTag").value.trim(),website:$("stWeb").value.trim(),color:$("stColor").value},logo:LOGO,
+    location:{name:$("locName").value.trim(),region:$("locRegion").value.trim(),state:$("locState").value,lat:parseFloat(String($("locLat").value).replace(",",".")),
+      lon:parseFloat(String($("locLon").value).replace(",",".")),places:list($("locPlaces").value),keywords:list($("locKeys").value)},
+    news:feeds("newsRows"),blitz:{feeds:feeds("bzRows"),links:links("bzLinks")},
+    traffic:{roads:list($("trRoads").value),alert:list($("trAlert").value),radius:+$("trRadius").value||35,links:links("trLinks")},
+    sport:{leagues:[...$("lgBox").querySelectorAll("input:checked")].map(i=>i.value),favs:list($("spFavs").value),feeds:feeds("spRows")},
+    links:links("qlRows"),
+    radio:{listeners:{type:$("lsType").value,url:$("lsUrl").value.trim()},nowplaying:$("npPath").value.trim(),marker:$("mkName").value.trim(),
+      interval:+$("mkInt").value,lead:+$("mkLead").value,grace:+$("mkGrace").value,deadair:+$("daMin").value,playlog_days:+$("plDays").value},
+    network:$("net").checked,port:+$("port").value||8765};
+}
+function msg(t,err){ $("msg").textContent=t; $("msg").className=err?"err":"ok"; }
+
+$("save").onclick=async()=>{
+  const c=read();
+  if(!c.station.name) return msg("Bitte den Namen des Senders eingeben.",true);
+  if(!c.location.name||isNaN(c.location.lat)||isNaN(c.location.lon)) return msg("Bitte den Sendeort über die Ortssuche auswählen (oder Ort und Koordinaten eintragen).",true);
+  let body=c, url="/api/config";
+  if(SETUP){
+    if($("adPw").value!==$("adPw2").value) return msg("Die beiden Passwörter stimmen nicht überein.",true);
+    body={config:c,admin:{name:$("adName").value.trim(),u:$("adUser").value.trim().toLowerCase(),password:$("adPw").value}}; url="/api/setup";
+  }
+  $("save").disabled=true; msg("Speichere …",false);
+  try{
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error||("Fehler "+r.status));
+    $("form").hidden=true; $("bar").hidden=true; $("doneBox").hidden=false; scrollTo(0,0);
+    $("doneText").textContent=(SETUP?"Das Dashboard ist eingerichtet und du bist angemeldet.":"Die Einstellungen sind gespeichert.")
+      +(j.restart?" Wichtig: Damit Netzwerk- bzw. Port-Einstellungen wirken, das Server-Fenster schließen und den Server neu starten.":"");
+  }catch(e){ msg(e.message,true); }
+  $("save").disabled=false;
+};
+
+/* ---------- Start: Einrichtung oder Einstellungen? ---------- */
+(async()=>{
+  let r; try{ r=await fetch("/api/config"); }catch(e){}
+  if(r&&r.ok){
+    const j=await r.json(); SETUP=false; fill(j.config);
+    $("title").textContent="⚙️ Einstellungen – "+j.config.station.name; document.title="Einstellungen – "+j.config.station.name;
+    $("adminSec").hidden=true; $("back").hidden=false; $("save").textContent="Speichern";
+    $("introText").innerHTML="Hier änderst du die Einstellungen des Dashboards. Änderungen wirken nach dem Speichern, sobald das Dashboard neu geladen wird. Version "+j.version+".";
+    document.querySelectorAll("section h2 .n").forEach(n=>n.remove());
+  }else{
+    fill({station:{name:"",tagline:"Info-Dashboard",website:"",color:"#e8312f"},logo:"",location:{name:"",lat:"",lon:"",state:"",region:"",places:[],keywords:[]},
+      news:[],blitz:{feeds:[],links:[]},traffic:{roads:[],alert:[],radius:35,links:[]},sport:{leagues:["bl1","bl2","bl3"],favs:[],feeds:[]},links:[],
+      radio:{listeners:{type:"none",url:""},nowplaying:"",marker:"START_AD_BREAK",interval:0,lead:0,grace:300,deadair:10,playlog_days:30},network:false,port:8765});
+    $("stName").focus();
+  }
+})();
+</script>
+</body>
+</html>

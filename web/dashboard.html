@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radio-Dashboard</title>
+<script>
+window.CFG=/*CONFIG*/null;   /* wird vom Server eingesetzt (Einstellungen aus data/config.json) */
+if(!window.CFG) location.href="/";
+document.title=CFG.station.name+" – "+(CFG.station.tagline||"Info-Dashboard")+(CFG.location.name?" "+CFG.location.name:"");
+if(CFG.hasLogo) document.write('<link rel="icon" href="/logo">');
+document.write('<style>:root{--acc:'+CFG.station.color+'}</style>');
+</script>
+<style>
+:root{--bg:#eef1f6;--card:#fff;--line:#dde2ec;--txt:#282828;--mut:#5d6575;--blue:#1b6fc0;--new:#1b6fc0}
+.logo .name{font-size:28px;font-weight:800;color:var(--acc);line-height:64px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,Segoe UI,Arial,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:10px 24px;border-bottom:4px solid var(--acc);position:sticky;top:0;background:#fff;z-index:2}
+.logo img{height:64px;display:block}
+.logo small{display:block;font-size:12px;color:var(--mut);margin-top:2px}
+.clock{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums}
+.meta{font-size:12px;color:var(--mut);text-align:right}
+button,input{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+button{cursor:pointer}button:hover{border-color:var(--blue)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;padding:14px 24px;align-items:center}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.item{box-shadow:0 1px 3px rgba(20,30,50,.06)}
+.item h3{color:var(--txt)}
+.item:hover{border-color:var(--blue)}
+input{min-width:200px;margin-left:auto}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:0 24px 30px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit}
+.item:hover{border-color:var(--acc)}
+.top{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);gap:8px}
+.src{color:var(--acc);font-weight:700}
+.new{background:var(--new);color:#fff;font-weight:800;border-radius:4px;padding:1px 6px;margin-right:6px;font-size:11px}
+h3{margin:0;font-size:16px;line-height:1.3}
+p{margin:0;font-size:13px;color:var(--mut);line-height:1.4}
+.state{padding:30px 24px;color:var(--mut)}
+.err{color:#c0392b;font-size:12px;padding:0 24px}
+
+.tabs{display:flex;gap:6px;padding:14px 24px 0}
+.tab{font-weight:700;padding:9px 20px;border-radius:10px 10px 0 0;border-bottom:none;background:#fff}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.wx{padding:14px 24px 30px;display:grid;gap:16px}
+.wx h2{margin:0;font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
+.now{background:linear-gradient(135deg,var(--blue),#0e4a8a);color:#fff;border-radius:14px;padding:20px;display:flex;flex-wrap:wrap;gap:24px;align-items:center}
+.now .ico{font-size:76px;line-height:1}.now .big{font-size:64px;font-weight:800;line-height:1}
+.now .desc{font-size:15px;opacity:.9;margin-top:4px}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;flex:1;min-width:260px}
+.fact{background:rgba(255,255,255,.15);border-radius:10px;padding:8px 10px;font-size:12px}.fact b{display:block;font-size:17px}
+.hours{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.h{min-width:74px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 6px;font-size:12px;color:var(--mut)}
+.h .e{font-size:24px}.h b{display:block;color:var(--txt);font-size:15px}
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.d{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;font-size:12px;color:var(--mut);display:grid;gap:3px}
+.d .n{font-weight:800;color:var(--txt);font-size:14px}.d .e{font-size:34px}.d b{color:var(--txt);font-size:16px}.d .lo{color:var(--blue)}
+
+.panel{margin:14px 24px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
+.panel h2,.sub{margin:0;font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
+.sub{padding:14px 24px 8px}
+.panel p{margin:0}
+.addrow{display:flex;flex-wrap:wrap;gap:8px}.addrow input{margin-left:0;flex:1;min-width:180px}
+.mine{display:grid;gap:6px}
+.mi{display:flex;justify-content:space-between;gap:8px;align-items:center;border-left:4px solid var(--acc);background:var(--bg);padding:8px 10px;border-radius:6px;font-size:14px}
+.mi small{color:var(--mut)}
+.tag{display:inline-block;font-size:11px;font-weight:800;border-radius:4px;padding:1px 6px;margin-right:6px;color:#fff;background:var(--blue)}
+.tag.red{background:var(--acc)}.tag.gray{background:#6b7385}
+.lk{padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:inherit;text-decoration:none;font-size:14px}
+.lk:hover{border-color:var(--blue)}
+.item.blocked{border-left:5px solid var(--acc)}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;padding:0 24px 30px}
+.tile{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(20,30,50,.06)}
+.tile:hover{border-color:var(--acc)}
+.tile a{display:flex;align-items:center;gap:14px;padding:18px;min-height:88px;text-decoration:none;color:inherit}
+.tile img{width:38px;height:38px;border-radius:8px;flex:none}
+.tile b{display:block;font-size:16px}.tile small{color:var(--mut);font-size:12px;word-break:break-all}
+.tile .x{display:none;position:absolute;top:6px;right:6px;padding:2px 8px;border-color:var(--acc);color:var(--acc)}
+.editing .tile .x{display:block}
+
+.sp{display:grid;grid-template-columns:minmax(300px,1fr) minmax(380px,1.2fr);gap:16px;padding:0 24px 16px}
+@media(max-width:900px){.sp{grid-template-columns:1fr}}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;align-self:start}
+.box h2{margin:0;padding:10px 14px;font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.box h2 button{padding:3px 10px}.box h2 button:disabled{opacity:.35;cursor:default}
+.mrow{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:14px}
+.mrow .t1{text-align:right}
+.mrow img,.tbl img{width:20px;height:20px;object-fit:contain;vertical-align:middle;margin:0 6px}
+.sc{font-weight:800;min-width:84px;text-align:center;font-variant-numeric:tabular-nums}
+.sc.live{color:var(--acc)}.sc.soon{font-weight:600;font-size:12px;color:var(--mut)}
+.fav{background:rgba(27,111,192,.10);font-weight:700}
+.tw{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}.tbl th,.tbl td{padding:6px 8px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+.tbl th{color:var(--mut);font-weight:600}.tbl .tn{text-align:left}.tbl .pk{font-weight:800}
+.src2{padding:0 24px 10px;font-size:11px;color:var(--mut)}
+.item{position:relative}
+.hide{position:absolute;right:8px;bottom:6px;border:none;background:transparent;padding:2px 6px;font-size:13px;opacity:.3;cursor:pointer}
+.item:hover .hide{opacity:.9}.hide:hover{background:var(--bg)}
+dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:14px;padding:18px;width:min(560px,92vw);max-height:80vh;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.say{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--acc);border-radius:12px;padding:14px;display:grid;gap:10px}
+.sayhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.sayhead h2{margin:0}
+.saytext{white-space:pre-line;font-size:20px;line-height:1.55}
+.saytext.big{font-size:38px;line-height:1.5}
+.sayfoot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--mut);font-size:12px}.sayfoot span{margin-right:auto}
+.tabs{position:fixed;top:0;left:0;bottom:0;width:min(290px,84vw);display:flex;flex-direction:column;gap:6px;padding:64px 14px 14px;background:#fff;border-right:4px solid var(--acc);box-shadow:4px 0 24px rgba(20,30,50,.18);z-index:60;transform:translateX(-110%);transition:transform .22s ease,visibility 0s .22s;overflow-y:auto;visibility:hidden}
+.tabs.open{transform:none;visibility:visible;transition:transform .22s ease,visibility 0s}
+.tabs .tab{width:100%;text-align:left;padding:13px 16px;font-size:16px;border:1px solid var(--line);border-radius:10px}
+.tabs .tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#menuBack{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:55;opacity:0;pointer-events:none;transition:opacity .2s}
+#menuBack.open{opacity:1;pointer-events:auto}
+#menuClose{position:absolute;top:12px;right:12px;padding:4px 10px}
+#menuTitle{position:absolute;top:18px;left:18px;font-weight:800;color:var(--mut);letter-spacing:.6px;text-transform:uppercase;font-size:13px}
+.hl{display:flex;align-items:center;gap:14px}
+#burger{font-size:18px;font-weight:700;padding:9px 14px;border-radius:10px;position:relative;white-space:nowrap}
+#burger.unread::after{content:"";position:absolute;top:3px;right:3px;width:11px;height:11px;border-radius:50%;background:var(--acc);border:2px solid #fff}
+.mid{text-align:center}
+#listeners{font-size:14px;font-weight:700;color:var(--mut);margin-top:2px;white-space:nowrap}
+#listeners b{color:var(--acc);font-size:20px}
+#listeners.off{font-weight:400}
+.multi{background:var(--blue);color:#fff;border-radius:4px;padding:1px 6px;margin-left:6px;font-size:11px;font-weight:800}
+#alertBar{position:fixed;top:0;left:0;right:0;z-index:80;display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 16px;background:var(--acc);color:#fff;font-weight:800;font-size:16px;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:alertpulse 1.2s 3}
+#alertBar button{font-size:13px}
+@keyframes alertpulse{0%,100%{filter:none}50%{filter:brightness(1.35)}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" id="logoBox"></div>
+  <div class="clock" id="clock">--:--</div>
+  <div class="meta"><div id="upd">Lade …</div><button id="refresh">↻ Jetzt aktualisieren</button> <button id="restore" hidden></button> <a id="logout" class="lk" href="/logout" hidden>🔒 Abmelden</a></div>
+</header>
+<dialog id="hidDlg">
+  <h3 style="margin:0 0 10px">Ausgeblendete Meldungen</h3>
+  <div class="mine" id="hidList"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+    <button id="hidAll">Alle wieder anzeigen</button><button id="hidClose">Schließen</button>
+  </div>
+</dialog>
+<div class="tabs">
+  <button class="tab on" id="tabNews">📰 News</button>
+  <button class="tab" id="tabWx">🌤️ Wetter</button>
+  <button class="tab" id="tabBlitz">🚨 Blitzer</button>
+  <button class="tab" id="tabBau">🚧 Baustellen</button>
+  <button class="tab" id="tabSport">⚽ Sport</button>
+  <button class="tab" id="tabLink">🔗 Links</button>
+</div>
+<section id="newsView">
+  <div class="bar" id="chips"></div>
+  <div class="err" id="err"></div>
+  <main id="list"></main>
+</section>
+<section id="wxView" class="wx" hidden>
+  <div class="state" id="wxState">Lade Wetter …</div>
+</section>
+
+<section id="blitzView" hidden>
+  <div class="panel">
+    <h2>Eigene Hörer-Hinweise</h2>
+    <div class="addrow"><input id="bzOrt" placeholder="Ort / Straße, z. B. Hamburger Straße"><input id="bzNote" placeholder="Hinweis, z. B. Tempo 30, Laser"><button id="bzAdd">Hinzufügen</button></div>
+    <div class="mine" id="bzMine"></div>
+    <p style="font-size:12px;color:var(--mut)">Wird nur in diesem Browser gespeichert und nach 24 Stunden automatisch entfernt. Offizielle Echtzeit-Daten zu mobilen Messstellen gibt es meist nicht – darunter stehen Presse- und Nachrichtenmeldungen der letzten 7 Tage.</p>
+  </div>
+  <div class="bar" id="bzLinks"></div>
+  <div class="err" id="bzErr"></div>
+  <main id="bzList"></main>
+</section>
+<section id="sportView" hidden>
+  <div class="bar" id="spLeagues"></div>
+  <div class="err" id="spErr"></div>
+  <div class="sp"><div class="box" id="spMatches"></div><div class="box" id="spTable"></div></div>
+  <div class="src2">Ergebnisse &amp; Tabellen: OpenLigaDB (Community-Daten, kurze Verzögerungen und Lücken sind möglich).</div>
+  <div class="bar" id="spNewsChips"></div>
+  <main id="spNews"></main>
+</section>
+<section id="linkView" hidden>
+  <div class="panel">
+    <h2>Seite hinzufügen</h2>
+    <div class="addrow"><input id="lkName" placeholder="Name (optional)"><input id="lkUrl" placeholder="Adresse, z. B. ndr.de"><button id="lkAdd">Hinzufügen</button></div>
+  </div>
+  <div class="bar"><button id="lkEdit">✏️ Bearbeiten</button><button id="lkReset">↺ Standard wiederherstellen</button><span class="err" id="lkMsg" style="padding:0"></span></div>
+  <div class="tiles" id="lkTiles"></div>
+</section>
+<section id="bauView" hidden>
+  <div class="bar" id="bauChips"></div>
+  <div class="err" id="bauErr"></div>
+  <main id="bauList"></main>
+  <h2 class="sub">Aus den Nachrichten</h2>
+  <main id="bauNews"></main>
+</section>
+
+
+<script>
+/* ====== EINSTELLUNGEN – kommen aus der Einrichtung (Menü „Einstellungen“) ====== */
+const REFRESH_MIN = 5;      // automatische Aktualisierung alle X Minuten
+const NEW_MIN = 60;         // "NEU"-Badge für Meldungen jünger als X Minuten
+const gn = q => "https://news.google.com/rss/search?hl=de&gl=DE&ceid=DE:de&q=" + encodeURIComponent(q);
+const feedsOf = list => (list||[]).map(f=>({name:f.name, url:f.url||gn(f.q), filter:!!f.filter}));
+const STATION = CFG.station.name;
+const TOWN = CFG.location.name || "der Region";
+// Orte für Ortsfilter und Stichworte (filter:true = nur Meldungen mit einem dieser Stichworte)
+const PLACES = [...new Set([CFG.location.name, ...CFG.location.places].filter(Boolean))];
+const KEYWORDS = [...new Set([...PLACES, CFG.location.region, ...CFG.location.keywords].filter(Boolean).map(k=>k.toLowerCase()))];
+const FEEDS = feedsOf(CFG.news);
+/* ================================================================================ */
+
+let items = [], active = "Alle", q = "";
+const $ = id => document.getElementById(id);
+$("logoBox").innerHTML = (CFG.hasLogo ? '<img alt="" src="/logo">' : '<div class="name"></div>') + '<small></small>';
+$("logoBox").querySelector("img,.name")[CFG.hasLogo?"alt":"textContent"] = STATION;
+$("logoBox").querySelector("small").textContent = (CFG.station.tagline||"Info-Dashboard") + (CFG.location.name ? " · " + CFG.location.name + " & Umgebung" : "");
+
+setInterval(() => $("clock").textContent = new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}), 1000);
+$("clock").textContent = new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+
+const strip = h => { const d=document.createElement("div"); d.innerHTML=h||""; return (d.textContent||"").trim(); };
+const ago = d => { const m=Math.round((Date.now()-d)/60000); if(m<1)return"gerade eben"; if(m<60)return`vor ${m} Min.`; const h=Math.round(m/60); return h<24?`vor ${h} Std.`:`vor ${Math.round(h/24)} Tg.`; };
+
+const ts = v => { if(!v) return Date.now(); const t = Date.parse(/^\d{4}-\d\d-\d\d \d/.test(v) ? v.replace(" ","T")+"Z" : v); return isNaN(t)?Date.now():t; };
+// Feeds werden über den eigenen Server geladen (umgeht Browser-Sperren, mit Zwischenspeicher)
+const PROVIDERS = [
+  async url => { const r = await fetch("/rss?url="+encodeURIComponent(url)); if(r.status===401){ location.href="/login"; } if(!r.ok) throw new Error("server "+r.status); return xmlItems(await r.text()); }
+];
+function xmlItems(t){
+  const x = new DOMParser().parseFromString(t,"text/xml"), its=[...x.querySelectorAll("item")];
+  if(!its.length) throw new Error("leer");
+  const g=(i,n)=>(i.querySelector(n)||{}).textContent||"";
+  return its.map(i=>({title:g(i,"title"),description:g(i,"description"),link:g(i,"link"),date:ts(g(i,"pubDate"))}));
+}
+/* ===== Gleiche Meldungen mehrerer Quellen zusammenfassen ===== */
+const STOP=new Set(["der","die","das","den","dem","des","ein","eine","einen","einem","und","oder","mit","von","vom","zum","zur","bei","für","nach","über","unter","ist","sind","wird","werden","hat","haben","wie","was","wer","nicht","jetzt","aktuell","aktuelle","news","live","ticker"]);
+const toks=t=>new Set(String(t).toLowerCase().replace(/[^a-zäöüß0-9]+/g," ").split(" ").filter(w=>w.length>2&&!STOP.has(w)).map(w=>w.slice(0,7)));
+const prefix=t=>{ const m=String(t).split(/:| - | – /)[0]; return m!==String(t)?toks(m):new Set(); };
+function sameStory(a,b){
+  if(a.k===b.k) return true;
+  const A=a.t,B=b.t; if(A.size<3||B.size<3) return false;
+  let c=0; A.forEach(w=>{ if(B.has(w)) c++; });
+  const J=c/(A.size+B.size-c);
+  if(J>=0.5||(c>=4&&c/Math.min(A.size,B.size)>=0.6)) return true;
+  return J>=0.3&&a.p.size>=3&&a.p.size===b.p.size&&[...a.p].every(w=>b.p.has(w));   // gleicher Vorspann vor dem Doppelpunkt
+}
+function groupItems(all){
+  const groups=[];
+  [...all].sort((a,b)=>b.date-a.date).forEach(i=>{
+    const e={i,t:toks(i.title),p:prefix(i.title),k:i.title.toLowerCase().replace(/\s+/g," ").slice(0,60)};
+    const g=groups.find(g=>g.some(m=>sameStory(m,e)));
+    if(g) g.push(e); else groups.push([e]);
+  });
+  return groups.map(g=>{ const seen=new Set(), sources=[];
+    g.forEach(m=>{ if(!seen.has(m.i.from)){ seen.add(m.i.from); sources.push({from:m.i.from,link:m.i.link,title:m.i.title,date:m.i.date}); } });
+    return Object.assign({},g[0].i,{sources,titles:g.map(m=>m.i.title)});   // neueste Meldung vorn, Liste bleibt nach Zeit sortiert
+  });
+}
+/* ===== Orte filtern ===== */
+let activePlace="Alle Orte";
+const hasPlace=(i,p)=>(i.title+" "+i.text).toLowerCase().includes(p.toLowerCase());
+function renderPlaces(){
+  let box=$("placeChips"); if(!box){ $("chips").insertAdjacentHTML("afterend",'<div class="bar" id="placeChips" style="padding-top:0"></div>'); box=$("placeChips"); }
+  const vis=items.filter(i=>!isHidden(i)&&(active==="Alle"||(i.sources||[i]).some(s=>s.from===active)));
+  const counts=PLACES.map(p=>[p,vis.filter(i=>hasPlace(i,p)).length]).filter(([p,n])=>n>0);
+  if(activePlace!=="Alle Orte"&&!counts.some(([p])=>p===activePlace)) activePlace="Alle Orte";
+  box.innerHTML="";
+  const mk=(label,val)=>{ const b=document.createElement("button"); b.className="chip"+(val===activePlace?" on":""); b.textContent=label; b.onclick=()=>{ activePlace=val; renderPlaces(); renderList(); }; box.appendChild(b); };
+  mk("📍 Alle Orte","Alle Orte"); counts.forEach(([p,n])=>mk(p+" ("+n+")",p));
+}
+/* ===== Töne ===== */
+let AC=null;
+function audio(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); }catch(e){} return AC; }
+["click","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,audio,{once:true}));
+function tone(freqs,gap=.22,vol=.12){
+  try{ if(localStorage.getItem("rd_sound")==="0") return; const c=audio(); if(!c) return; const t=c.currentTime;
+    freqs.forEach((f,k)=>{ const o=c.createOscillator(), g=c.createGain(); o.frequency.value=f; g.gain.value=vol; o.connect(g); g.connect(c.destination); o.start(t+k*gap); o.stop(t+k*gap+gap*.8); }); }catch(e){}
+}
+/* ===== Alarm bei neuen Sperrungen/Meldungen auf ausgewählten Autobahnen ===== */
+const ALERT_ROADS=CFG.traffic.alert; let bauSeen=null;
+function checkBauAlerts(anyFail){
+  if(anyFail) return;   // unvollständige Daten: nichts vergleichen
+  const cur=bau.filter(x=>ALERT_ROADS.includes(x.road)&&(x.svc==="closure"||x.svc==="warning"));
+  if(bauSeen){ const neu=cur.filter(x=>!bauSeen.has(x.id)); if(neu.length) showAlert(neu); }
+  bauSeen=new Set(cur.map(x=>x.id));   // erster Durchlauf = Ausgangslage, ohne Alarm
+}
+function showAlert(list){
+  let b=$("alertBar"); if(!b){ b=document.createElement("div"); b.id="alertBar"; document.body.appendChild(b); }
+  const txt=list.slice(0,3).map(x=>(x.svc==="closure"?(x.blocked?"Vollsperrung":"Sperrung"):"Meldung")+" "+x.road+": "+(x.title||x.desc||"")).join(" · ")+(list.length>3?" · +"+(list.length-3)+" weitere":"");
+  b.innerHTML=""; const s=document.createElement("span"); s.textContent="🚨 NEU: "+txt; b.appendChild(s);
+  const go=document.createElement("button"); go.textContent="Ansehen"; go.onclick=()=>{ bauType="Alle"; show("bau"); renderBau(); b.remove(); }; b.appendChild(go);
+  const x=document.createElement("button"); x.textContent="✕"; x.onclick=()=>b.remove(); b.appendChild(x);
+  tone([880,660,880,660]);
+}
+
+/* ===== Unerwünschtes ausfiltern (Anzeigen, Werbung, Traueranzeigen) ===== */
+const JUNK_RE=/traueranzeige|todesanzeige|trauerportal|trauer-?anzeigen|gedenkseite|kondolenz|in liebevoller erinnerung|^anzeige\b|\(anzeige\)|\banzeige:|\|\s*anzeige|^werbung\b|\(werbung\)|\bwerbung:|\|\s*werbung|sponsored|advertorial|stellenangebot|stellenanzeige|branchenbuch|firmenverzeichnis/i;
+const BIZ_RE=/(dienst|service|shop|meisterbetrieb|fachbetrieb|gmbh|handwerk|sanierung|renovier|installation|praxis|studio|immobilien|reinigung|bestattung)/i;
+const NAME_RE=/^\p{Lu}[\p{L}.'-]+(\s+\p{Lu}[\p{L}.'-]+){1,2}$/u;
+function isJunk(i){
+  const t=(i.title||"").trim();
+  if(JUNK_RE.test(t+" "+(i.text||""))) return true;
+  if(t.includes(" | ") && !/ndr/i.test(i.from) && BIZ_RE.test(t)) return true;                      // Firmeneinträge wie "Firma | Dienstleistung in Ort"
+  if(NAME_RE.test(t) && !/polizei|feuer/i.test(t) && !KEYWORDS.some(k=>t.toLowerCase().includes(k))) return true;   // reine Namen = meist Traueranzeigen
+  return false;
+}
+// Per Klick ausgeblendete Meldungen (14 Tage lang gemerkt)
+let HID={}; try{ HID=JSON.parse(localStorage.getItem("rd_hidden")||"{}"); }catch(e){}
+const hkey=i=>i.title.toLowerCase().replace(/\s+/g," ").slice(0,80);
+const isHidden=i=>(i.titles||[i.title]).some(t=>!!HID[hkey({title:t})]);
+const hts=v=>typeof v==="number"?v:(v&&v.t)||0;
+const saveHid=()=>{ const cut=Date.now()-14*864e5; for(const k in HID) if(hts(HID[k])<cut) delete HID[k]; try{ localStorage.setItem("rd_hidden",JSON.stringify(HID)); }catch(e){} updRestore(); };
+function hideItem(i){ (i.titles||[i.title]).forEach(t=>{ HID[hkey({title:t})]={t:Date.now(),title:i.title}; }); saveHid(); }
+function updRestore(){ const n=new Set(Object.keys(HID).map(k=>(HID[k]&&HID[k].title)||k)).size, b=$("restore"); if(!b) return; b.hidden=!n; b.textContent="🚫 "+n+" ausgeblendet"; }
+let hidChanged=false;
+function openHid(){
+  const box=$("hidList"); box.innerHTML="";
+  const seenT=new Set(), keys=Object.keys(HID).sort((a,b)=>hts(HID[b])-hts(HID[a])).filter(k=>{ const t=(HID[k]&&HID[k].title)||k; if(seenT.has(t)) return false; seenT.add(t); return true; });
+  if(!keys.length) box.innerHTML='<div class="state" style="padding:8px 0">Nichts ausgeblendet.</div>';
+  keys.forEach(k=>{
+    const r=document.createElement("div"); r.className="mi";
+    r.innerHTML='<span></span><button>Wieder anzeigen</button>';
+    r.querySelector("span").textContent=(HID[k]&&HID[k].title)||k;
+    r.querySelector("button").onclick=()=>{ const t=(HID[k]&&HID[k].title)||k; Object.keys(HID).filter(x=>((HID[x]&&HID[x].title)||x)===t).forEach(x=>delete HID[x]); hidChanged=true; saveHid(); openHid(); };
+    box.appendChild(r);
+  });
+  if(!$("hidDlg").open) $("hidDlg").showModal();
+}
+
+async function loadFeed(f){
+  let raw=null;
+  for(const prov of PROVIDERS){ try{ raw = await prov(f.url); if(raw.length) break; }catch(e){ console.warn(f.name, e.message); } }
+  if(!raw||!raw.length) throw new Error(f.name);
+  return raw.map(i => {
+    const title = strip(i.title);
+    const m = f.url.includes("news.google") ? title.match(/^(.*) - ([^-]+)$/) : null;
+    return { feed:f.name, title: m?m[1]:title, from: m?m[2]:f.name,
+      text: strip(i.description).slice(0,160), link:i.link, date:i.date, filter:f.filter };
+  }).filter(i=>!isJunk(i));
+}
+
+async function load(){
+  $("upd").textContent = "Aktualisiere …"; $("err").textContent = "";
+  const res = [];
+  for(const f of FEEDS){   // nacheinander laden, damit die kostenlosen Dienste nicht blockieren
+    try{ res.push({status:"fulfilled", value: await loadFeed(f)}); }catch(e){ res.push({status:"rejected"}); }
+    await new Promise(r=>setTimeout(r,350));
+  }
+  const failed = []; let all = [];
+  res.forEach((r,i) => r.status==="fulfilled" ? all.push(...r.value) : failed.push(FEEDS[i].name));
+  all = all.filter(i => !i.filter || KEYWORDS.some(k => (i.title+" "+i.text).toLowerCase().includes(k)));
+  items = groupItems(all);
+  if(failed.length) $("err").textContent = "Nicht erreichbar: " + failed.join(", ");
+  $("upd").textContent = "Stand: " + new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}) + " Uhr · " + items.length + " Meldungen";
+  render();
+}
+
+function render(){
+  const names = ["Alle", ...new Set(items.filter(i=>!isHidden(i)).flatMap(i=>(i.sources||[i]).map(s=>s.from)))].slice(0,14);
+  $("chips").innerHTML = "";
+  names.forEach(n => { const b=document.createElement("button"); b.className="chip"+(n===active?" on":""); b.textContent=n;
+    b.onclick=()=>{active=n;render();}; $("chips").appendChild(b); });
+  const s = document.createElement("input"); s.placeholder="Suchen …"; s.value=q;
+  s.oninput = e => { q=e.target.value.toLowerCase(); renderList(); }; $("chips").appendChild(s);
+  renderPlaces(); renderList();
+}
+
+function renderList(){
+  cards($("list"), items.filter(i => (active==="Alle"||(i.sources||[i]).some(s=>s.from===active)) && (activePlace==="Alle Orte"||hasPlace(i,activePlace)) && (!q||(i.title+i.text).toLowerCase().includes(q))), "Keine Meldungen gefunden.");
+}
+
+
+/* ===== Wetter (Open-Meteo, kostenlos, ohne Anmeldung) ===== */
+const WX_LAT = CFG.location.lat, WX_LON = CFG.location.lon;
+const WX_URL = "https://api.open-meteo.com/v1/forecast?latitude="+WX_LAT+"&longitude="+WX_LON
+ +"&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
+ +"&hourly=temperature_2m,precipitation_probability,weather_code"
+ +"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset"
+ +"&timezone=Europe%2FBerlin&forecast_days=7&wind_speed_unit=kmh";
+function wx(c){
+  const m={0:["☀️","Klar"],1:["🌤️","Überwiegend klar"],2:["⛅","Teils bewölkt"],3:["☁️","Bedeckt"],45:["🌫️","Nebel"],48:["🌫️","Reifnebel"],
+  51:["🌦️","Leichter Nieselregen"],53:["🌦️","Nieselregen"],55:["🌧️","Starker Nieselregen"],56:["🌧️","Gefrierender Nieselregen"],57:["🌧️","Gefrierender Nieselregen"],
+  61:["🌧️","Leichter Regen"],63:["🌧️","Regen"],65:["🌧️","Starkregen"],66:["🌧️","Gefrierender Regen"],67:["🌧️","Gefrierender Regen"],
+  71:["🌨️","Leichter Schneefall"],73:["🌨️","Schneefall"],75:["❄️","Starker Schneefall"],77:["🌨️","Schneegriesel"],
+  80:["🌦️","Regenschauer"],81:["🌧️","Kräftige Schauer"],82:["🌧️","Heftige Schauer"],85:["🌨️","Schneeschauer"],86:["🌨️","Starke Schneeschauer"],
+  95:["⛈️","Gewitter"],96:["⛈️","Gewitter mit Hagel"],99:["⛈️","Gewitter mit Hagel"]};
+  return m[c]||["❔","–"];
+}
+const dir = d => ["N","NO","O","SO","S","SW","W","NW"][Math.round(d/45)%8];
+const r = v => Math.round(v);
+async function loadWx(){
+  try{
+    const j = await (await fetch(WX_URL)).json(); const c=j.current, h=j.hourly, d=j.daily; WXD={c,h,d};
+    const [ico,desc]=wx(c.weather_code);
+    let i0 = h.time.findIndex(t => t.startsWith(c.time.slice(0,13))); if(i0<0) i0=0;
+    const hours = h.time.slice(i0,i0+24).map((t,k)=>{const q=i0+k,[e]=wx(h.weather_code[q]);
+      return `<div class="h">${k===0?"Jetzt":t.slice(11,16)}<div class="e">${e}</div><b>${r(h.temperature_2m[q])}°</b>💧${h.precipitation_probability[q]??0}%</div>`}).join("");
+    const days = d.time.map((t,k)=>{const [e,txt]=wx(d.weather_code[k]);
+      const n = k===0?"Heute":k===1?"Morgen":new Date(t+"T12:00").toLocaleDateString("de-DE",{weekday:"long"});
+      return `<div class="d"><span class="n">${n}</span><span>${new Date(t+"T12:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})}</span><span class="e">${e}</span><span>${txt}</span>
+      <span><b>${r(d.temperature_2m_max[k])}°</b> / <span class="lo">${r(d.temperature_2m_min[k])}°</span></span>
+      <span>💧 ${d.precipitation_probability_max[k]??0}% · ${d.precipitation_sum[k].toFixed(1)} mm</span><span>💨 bis ${r(d.wind_speed_10m_max[k])} km/h</span></div>`}).join("");
+    $("wxView").innerHTML = `
+     <div class="say"><div class="sayhead"><h2>🎙️ Sprechtext zum Vorlesen</h2><div class="bar" id="sayChips" style="padding:0"></div></div>
+       <div class="saytext" id="sayText"></div>
+       <div class="sayfoot"><span id="sayInfo"></span><button id="sayCopy">📋 Kopieren</button><button id="sayBig">🔍 Großanzeige</button></div></div>
+     <div class="now"><div class="ico">${ico}</div>
+       <div><div class="big">${r(c.temperature_2m)}°C</div><div class="desc">${desc} · ${esc(TOWN)}</div></div>
+       <div class="facts">
+         <div class="fact">Gefühlt<b>${r(c.apparent_temperature)}°C</b></div>
+         <div class="fact">Wind<b>${r(c.wind_speed_10m)} km/h ${dir(c.wind_direction_10m)}</b></div>
+         <div class="fact">Böen<b>${r(c.wind_gusts_10m)} km/h</b></div>
+         <div class="fact">Luftfeuchte<b>${c.relative_humidity_2m}%</b></div>
+         <div class="fact">Niederschlag<b>${c.precipitation} mm</b></div>
+         <div class="fact">Sonne<b>${d.sunrise[0].slice(11,16)} – ${d.sunset[0].slice(11,16)}</b></div>
+       </div></div>
+     <h2>Nächste 24 Stunden</h2><div class="hours">${hours}</div>
+     <h2>7-Tage-Vorhersage</h2><div class="days">${days}</div>
+     <div class="state" style="padding:0">Wetterdaten: Open-Meteo · Stand ${new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})} Uhr</div>`;
+    renderSay();
+  }catch(e){ $("wxView").innerHTML='<div class="state">Wetter konnte nicht geladen werden (Internetverbindung prüfen).</div>'; }
+}
+
+/* ===== Gemeinsame Helfer für Blitzer & Baustellen ===== */
+const esc = t => String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function loadMany(feeds){
+  let all=[], failed=[];
+  for(const f of feeds){ try{ all.push(...await loadFeed(f)); }catch(e){ failed.push(f.name); } await new Promise(r=>setTimeout(r,350)); }
+  all = groupItems(all);
+  return {items:all, failed};
+}
+function cards(el, list, empty){
+  list = list.filter(i=>!isHidden(i));
+  el.innerHTML = list.length ? "" : '<div class="state">'+empty+'</div>';
+  list.forEach(i=>{
+    const a=document.createElement("a"); a.className="item"; a.href=i.link; a.target="_blank"; a.rel="noopener";
+    const isNew=(Date.now()-i.date)/60000<NEW_MIN;
+    a.innerHTML='<div class="top"><span class="src"></span><span>'+(isNew?'<span class="new">NEU</span>':'')+ago(i.date)+'</span></div><h3></h3><p></p><button class="hide" title="Meldung ausblenden">🚫</button>';
+    a.querySelector(".hide").onclick=e=>{ e.preventDefault(); e.stopPropagation(); hideItem(i); a.remove(); };
+    a.__it=i;
+    a.onclick=e=>{ if(typeof openNews!=="function"||e.ctrlKey||e.metaKey||e.shiftKey||e.button!==0) return; e.preventDefault(); const v=list.filter(x=>!isHidden(x)); openNews(v,v.indexOf(i)); };
+    const sp=a.querySelector(".src"); sp.textContent=i.from;
+    if(i.sources&&i.sources.length>1){ const bd=document.createElement("span"); bd.className="multi"; bd.textContent=i.sources.length+" Quellen"; bd.title=i.sources.map(s=>s.from).join(", "); sp.appendChild(bd); } a.querySelector("h3").textContent=i.title; a.querySelector("p").textContent=i.text;
+    el.appendChild(a);
+  });
+}
+function links(el, arr){ arr.forEach(([t,u])=>{ const a=document.createElement("a"); a.className="lk"; a.href=u; a.target="_blank"; a.rel="noopener"; a.textContent="↗ "+t; el.appendChild(a); }); }
+
+/* ===== Blitzer ===== */
+const BLITZ_FEEDS = feedsOf(CFG.blitz.feeds);
+const BLITZ_LINKS = [...CFG.blitz.links.map(l=>[l.n,l.u]), ["Blitzer.de","https://www.blitzer.de"]];
+links($("bzLinks"), BLITZ_LINKS);
+
+let mine=[]; try{ mine=JSON.parse(localStorage.getItem("rd_blitz")||"[]").filter(m=>Date.now()-m.t<864e5); }catch(e){}
+const saveMine=()=>{ try{ localStorage.setItem("rd_blitz",JSON.stringify(mine)); }catch(e){} };
+function renderMine(){
+  const el=$("bzMine"); el.innerHTML = mine.length ? "" : '<div class="state" style="padding:0">Noch keine eigenen Hinweise.</div>';
+  mine.forEach((m,k)=>{
+    const d=document.createElement("div"); d.className="mi";
+    d.innerHTML='<div><b></b> – <span></span><br><small></small></div><button title="Entfernen">✕</button>';
+    d.querySelector("b").textContent=m.ort; d.querySelector("span").textContent=m.note;
+    d.querySelector("small").textContent=new Date(m.t).toLocaleString("de-DE",{weekday:"short",hour:"2-digit",minute:"2-digit"})+" Uhr";
+    d.querySelector("button").onclick=()=>{ mine.splice(k,1); saveMine(); renderMine(); };
+    el.appendChild(d);
+  });
+}
+$("bzAdd").onclick=()=>{ const o=$("bzOrt").value.trim(), n=$("bzNote").value.trim(); if(!o) return;
+  mine.unshift({ort:o,note:n,t:Date.now()}); saveMine(); $("bzOrt").value=""; $("bzNote").value=""; renderMine(); };
+renderMine();
+
+async function loadBlitz(){
+  $("bzErr").textContent="";
+  const {items,failed} = await loadMany(BLITZ_FEEDS);
+  const re=/blitz|geschwindigkeit|tempo|radar|raser|laser|messung|kontroll/i;
+  cards($("bzList"), items.filter(i=>re.test(i.title+" "+i.text)), "Keine Meldungen zu Geschwindigkeitskontrollen in den letzten 7 Tagen gefunden.");
+  if(failed.length) $("bzErr").textContent="Nicht erreichbar: "+failed.join(", ");
+}
+
+/* ===== Baustellen (Autobahn GmbH Open Data + Nachrichten) ===== */
+const AUTOBAHNEN = CFG.traffic.roads;        // Autobahnen im Umfeld
+const RADIUS_KM = CFG.traffic.radius;        // Umkreis um den Sendeort
+const BAU_KEYS = PLACES.map(p=>p.toLowerCase());
+const AB_TYPES = {closure:["Sperrung","red"], roadworks:["Baustelle","gray"], warning:["Meldung",""]};
+const km=(la,lo)=>{ const R=6371,p=Math.PI/180,dla=(la-WX_LAT)*p,dlo=(lo-WX_LON)*p;
+  const a=Math.sin(dla/2)**2+Math.cos(WX_LAT*p)*Math.cos(la*p)*Math.sin(dlo/2)**2; return 2*R*Math.asin(Math.sqrt(a)); };
+const abTime = v => { if(!v) return null; const t=Date.parse(String(v).replace(/([+-]\d\d)(\d\d)$/,"$1:$2")); return isNaN(t)?null:t; };
+async function abGet(road,svc){
+  const u="https://verkehr.autobahn.de/o/autobahn/"+road+"/services/"+svc;
+  try{ const r=await fetch(u); if(!r.ok) throw new Error("direkt"); return await r.json(); }
+  catch(e){ const r=await fetch("/rss?url="+encodeURIComponent(u)); if(!r.ok) throw new Error(u); return JSON.parse(await r.text()); }
+}
+let bau=[], bauType="Alle";
+async function loadBau(quick){
+  $("bauErr").textContent="";
+  const jobs=[]; AUTOBAHNEN.forEach(road=>Object.keys(AB_TYPES).forEach(svc=>jobs.push(abGet(road,svc).then(j=>({road,svc,list:j[svc]||[]})))));
+  const res=await Promise.allSettled(jobs); let out=[], fail=0;
+  res.forEach(r=>{
+    if(r.status!=="fulfilled"){ fail++; return; }
+    const {road,svc,list}=r.value;
+    list.forEach(i=>{
+      const la=parseFloat(i.coordinate&&i.coordinate.lat), lo=parseFloat(i.coordinate&&i.coordinate.long);
+      const d=(isNaN(la)||isNaN(lo))?null:km(la,lo);
+      const desc=(i.description||[]).filter(Boolean).join(" · ");
+      const txt=((i.title||"")+" "+(i.subtitle||"")+" "+desc).toLowerCase();
+      if(!((d!==null&&d<=RADIUS_KM)||BAU_KEYS.some(k=>txt.includes(k)))) return;
+      out.push({road,svc,id:i.identifier||(road+"|"+svc+"|"+(i.title||"")+"|"+(i.subtitle||"")),title:i.title||"",sub:i.subtitle||"",desc:desc.slice(0,320),d,
+        blocked:i.isBlocked===true||i.isBlocked==="true", future:i.future===true||i.future==="true", start:abTime(i.startTimestamp)});
+    });
+  });
+  const rank={closure:0,warning:1,roadworks:2};
+  bau=out.sort((a,b)=>(b.blocked-a.blocked)||(rank[a.svc]-rank[b.svc])||((a.d??999)-(b.d??999)));
+  if(fail) $("bauErr").textContent="Autobahn-Daten teilweise nicht erreichbar ("+fail+" von "+jobs.length+" Abfragen).";
+  renderBau(); checkBauAlerts(fail>0);
+  if(quick) return;
+  if(!PLACES.length) return;
+  const {items}=await loadMany([{name:"Baustellen",url:gn("(Baustelle OR Sperrung OR Umleitung) ("+PLACES.slice(0,6).map(p=>'"'+p+'"').join(" OR ")+") when:5d"),filter:false}]);
+  cards($("bauNews"), items.filter(i=>/baustell|sperr|umleit|bauarbeit|fahrbahn|verkehr/i.test(i.title+" "+i.text)).slice(0,18), "Keine passenden Nachrichten gefunden.");
+}
+function bauND(x){   // Baustelle -> Eintrag für das Großansicht-Fenster
+  const t=AB_TYPES[x.svc][0], k={closure:"Sperrung",roadworks:"Baustelle",warning:"Verkehrsmeldung"}[x.svc];
+  return {kind:"bau", noTitle:!x.title, svc:x.svc, road:x.road, blocked:x.blocked, future:x.future, d:x.d, sub:x.sub, text:x.desc, date:x.start,
+    from:t+" · "+x.road, title:x.title||(k+" auf der "+x.road), link:"https://www.autobahn.de",
+    whenText:x.start?(x.future?"ab ":"seit ")+new Date(x.start).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"}):""};
+}
+function renderBau(){
+  const names=["Alle","Sperrung","Baustelle","Meldung"], el=$("bauChips"); el.innerHTML="";
+  names.forEach(n=>{ const c=n==="Alle"?bau.length:bau.filter(x=>AB_TYPES[x.svc][0]===n).length;
+    const b=document.createElement("button"); b.className="chip"+(n===bauType?" on":""); b.textContent=n+" ("+c+")"; b.onclick=()=>{bauType=n;renderBau();}; el.appendChild(b); });
+  links(el,[["Autobahn GmbH","https://www.autobahn.de"],...CFG.traffic.links.map(l=>[l.n,l.u])]);
+  const list=bau.filter(x=>bauType==="Alle"||AB_TYPES[x.svc][0]===bauType), box=$("bauList");
+  box.innerHTML=list.length?"":'<div class="state">'+(AUTOBAHNEN.length?'Aktuell keine Autobahn-Meldungen im Umkreis von '+RADIUS_KM+' km um '+esc(TOWN)+'.':'Keine Autobahnen ausgewählt (Einstellungen → Verkehr).')+'</div>';
+  list.forEach(x=>{
+    const [t,c]=AB_TYPES[x.svc], d=document.createElement("div"); d.className="item"+(x.blocked?" blocked":"");
+    d.innerHTML='<div class="top"><span><span class="tag '+c+'">'+t+'</span><span class="tag">'+esc(x.road)+'</span>'+(x.blocked?'<span class="tag red">gesperrt</span>':'')+(x.future?'<span class="tag gray">geplant</span>':'')+'</span><span>'
+      +(x.start?(x.future?"ab ":"seit ")+new Date(x.start).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"}):"")+'</span></div>'
+      +'<h3>'+esc(x.title)+'</h3>'+(x.sub?'<p>'+esc(x.sub)+'</p>':'')+(x.desc?'<p>'+esc(x.desc)+'</p>':'')
+      +(x.d!=null?'<p>📍 ca. '+Math.round(x.d)+' km von '+esc(TOWN)+'</p>':'');
+    d.style.cursor="pointer"; d.title="Anklicken für Großansicht und Vorlesetext";
+    d.onclick=()=>{ if(typeof openNews==="function") openNews(list.map(bauND),list.indexOf(x)); };
+    box.appendChild(d);
+  });
+}
+
+/* ===== Sport (OpenLigaDB + Nachrichten) ===== */
+const ALL_LEAGUES = {bl1:"Bundesliga", bl2:"2. Bundesliga", bl3:"3. Liga"};
+const LEAGUES = Object.fromEntries(Object.entries(ALL_LEAGUES).filter(([k])=>CFG.sport.leagues.includes(k)));
+const FAVS = CFG.sport.favs;   // Vereine aus der Region werden hervorgehoben
+const SEASON = (()=>{ const d=new Date(); return d.getMonth()>=6 ? d.getFullYear() : d.getFullYear()-1; })();
+const OL = "https://api.openligadb.de/";
+const LOCAL_SPORT = "Sport vor Ort";   // automatisch aus den Orten – wird zusätzlich auf Sport-Stichworte gefiltert
+const SPORT_FEEDS = [
+  ...(PLACES.length?[{name:LOCAL_SPORT, url: gn("("+PLACES.slice(0,6).map(p=>'"'+p+'"').join(" OR ")+") (Fußball OR Handball OR Basketball OR Volleyball OR Kreisliga OR Landesliga OR Sportverein OR Turnier OR Meisterschaft) when:14d"), filter:false}]:[]),
+  ...feedsOf(CFG.sport.feeds)
+];
+let sportLeague=Object.keys(LEAGUES)[0]||"", sportData={}, mdSel={}, sportNews=[], sportFeed="Alle";
+async function jget(u){
+  try{ const r=await fetch(u); if(!r.ok) throw new Error("direkt"); return await r.json(); }
+  catch(e){ const r=await fetch("/rss?url="+encodeURIComponent(u)); if(!r.ok) throw new Error(u); return JSON.parse(await r.text()); }
+}
+async function loadLeague(lg, md){
+  try{
+    if(!md){ const g=await jget(OL+"getcurrentgroup/"+lg); md=g.groupOrderID; }
+    const [table,matches]=await Promise.all([jget(OL+"getbltable/"+lg+"/"+SEASON), jget(OL+"getmatchdata/"+lg+"/"+SEASON+"/"+md)]);
+    sportData[lg]={table,matches,md,name:(matches[0]&&matches[0].group&&matches[0].group.groupName)||(md+". Spieltag")};
+  }catch(e){ if(!sportData[lg]) sportData[lg]={error:true}; }
+}
+function score(m){
+  const rs=m.matchResults||[], t=new Date(m.matchDateTime||(m.matchDateTimeUTC+"Z"));
+  const fin=rs.find(r=>r.resultTypeID===2)||rs[rs.length-1];
+  if(m.matchIsFinished) return fin?{txt:fin.pointsTeam1+" : "+fin.pointsTeam2,st:"fin"}:{txt:"–",st:"fin"};
+  const age=Date.now()-t.getTime();
+  if(age>=0 && age<4*36e5){ const g=m.goals||[], l=g[g.length-1]; return {txt:(l?l.scoreTeam1+" : "+l.scoreTeam2:"0 : 0")+" ●",st:"live"}; }
+  if(age>=4*36e5) return {txt:"–",st:"fin"};
+  return {txt:t.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"})+" "+t.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),st:"soon"};
+}
+const isFav = n => FAVS.some(f=>String(n).includes(f));
+const icon = t => t.teamIconUrl ? '<img alt="" loading="lazy" src="'+esc(t.teamIconUrl)+'" onerror="this.style.visibility=\'hidden\'">' : '';
+function renderSport(){
+  const lb=$("spLeagues"); lb.innerHTML="";
+  Object.entries(LEAGUES).forEach(([k,n])=>{ const b=document.createElement("button"); b.className="chip"+(k===sportLeague?" on":""); b.textContent=n; b.onclick=()=>{sportLeague=k;renderSport();}; lb.appendChild(b); });
+  const d=sportData[sportLeague], M=$("spMatches"), T=$("spTable");
+  M.parentNode.hidden=!sportLeague; $("spLeagues").hidden=!sportLeague; $("sportView").querySelector(".src2").hidden=!sportLeague;
+  if(!sportLeague){}
+  else if(!d||d.error){ M.innerHTML=T.innerHTML='<div class="state">Ergebnisse konnten nicht geladen werden.</div>'; }
+  else{
+    const max=sportLeague==="bl3"?38:34;
+    M.innerHTML='<h2><button id="mdPrev">◀</button><span>'+esc(d.name)+'</span><button id="mdNext">▶</button></h2>';
+    $("mdPrev").disabled=d.md<=1; $("mdNext").disabled=d.md>=max;
+    const go=async step=>{ mdSel[sportLeague]=d.md+step; await loadLeague(sportLeague,mdSel[sportLeague]); renderSport(); };
+    $("mdPrev").onclick=()=>go(-1); $("mdNext").onclick=()=>go(1);
+    [...d.matches].sort((a,b)=>new Date(a.matchDateTime)-new Date(b.matchDateTime)).forEach(m=>{
+      const sc=score(m), r=document.createElement("div"); r.className="mrow";
+      r.innerHTML='<span class="t1 '+(isFav(m.team1.teamName)?"fav":"")+'">'+esc(m.team1.teamName)+icon(m.team1)+'</span><span class="sc '+sc.st+'">'+esc(sc.txt)+'</span><span class="t2 '+(isFav(m.team2.teamName)?"fav":"")+'">'+icon(m.team2)+esc(m.team2.teamName)+'</span>';
+      M.appendChild(r);
+    });
+    const tb=[...(d.table||[])].sort((a,b)=>b.points-a.points||b.goalDiff-a.goalDiff||b.goals-a.goals);
+    T.innerHTML='<h2><span>Tabelle '+esc(LEAGUES[sportLeague])+' '+SEASON+'/'+String(SEASON+1).slice(2)+'</span></h2>'+(tb.length?
+      '<div class="tw"><table class="tbl"><tr><th>#</th><th class="tn">Verein</th><th>Sp</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>Diff</th><th>Pkt</th></tr>'+
+      tb.map((x,i)=>'<tr class="'+(isFav(x.teamName)?"fav":"")+'"><td>'+(i+1)+'</td><td class="tn">'+icon(x)+esc(x.teamName)+'</td><td>'+x.matches+'</td><td>'+x.won+'</td><td>'+x.draw+'</td><td>'+x.lost+'</td><td>'+x.goals+':'+x.opponentGoals+'</td><td>'+(x.goalDiff>0?"+":"")+x.goalDiff+'</td><td class="pk">'+x.points+'</td></tr>').join("")+'</table></div>'
+      :'<div class="state">Noch keine Tabelle verfügbar.</div>');
+  }
+  const names=["Alle",...SPORT_FEEDS.map(f=>f.name)], nb=$("spNewsChips"); nb.innerHTML="";
+  names.forEach(n=>{ const b=document.createElement("button"); b.className="chip"+(n===sportFeed?" on":""); b.textContent=n; b.onclick=()=>{sportFeed=n;renderSport();}; nb.appendChild(b); });
+  cards($("spNews"), sportNews.filter(i=>sportFeed==="Alle"||i.feed===sportFeed).slice(0,30), "Keine Sport-Nachrichten gefunden.");
+}
+async function loadSport(){
+  $("spErr").textContent="";
+  await Promise.all(Object.keys(LEAGUES).map(lg=>loadLeague(lg,mdSel[lg])));
+  renderSport();
+  const {items,failed}=await loadMany(SPORT_FEEDS);
+  // Nur echte Sportmeldungen behalten (die Suche liefert sonst auch allgemeine Ortsnachrichten)
+  const SPORT_RE=/\b(fußball|handball|basketball|volleyball|tischtennis|tennis|kreisliga|landesliga|verbandsliga|oberliga|liga|turnier|mannschaft|trainer|sportverein|sport\w*|spieltag|punktspiel|testspiel|derby|meisterschaft|schwimm\w*|leichtathletik|turnen|ruder\w*|pokal)\b/i;
+  sportNews=items.filter(i=>i.feed!==LOCAL_SPORT || SPORT_RE.test(i.title+" "+i.text)); renderSport();
+  if(failed.length) $("spErr").textContent="Nicht erreichbar: "+failed.join(", ");
+}
+
+/* ===== Schnellzugriff-Links ===== */
+const DEFAULT_QL=CFG.links.length?CFG.links:[{n:"Google", u:"https://www.google.com"}];
+let QL=null;
+async function loadLinks(){
+  try{ const r=await fetch("/api/links"); if(r.ok){ const d=await r.json(); if(Array.isArray(d)&&d.length){ QL=d; } } }catch(e){}   // vom Server (gilt für alle Rechner)
+  if(!QL) QL=DEFAULT_QL.map(x=>({...x}));
+  renderLinks();
+}
+async function saveLinks(){
+  try{ await fetch("/api/links",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(QL)}); }catch(e){}
+}
+function renderLinks(){
+  const box=$("lkTiles"); box.innerHTML="";
+  QL.forEach((l,k)=>{
+    let host=""; try{ host=new URL(l.u).hostname; }catch(e){}
+    const d=document.createElement("div"); d.className="tile";
+    d.innerHTML='<a target="_blank" rel="noopener"><img alt=""><span><b></b><small></small></span></a><button class="x" title="Entfernen">✕</button>';
+    const a=d.querySelector("a"); a.href=l.u;
+    const img=d.querySelector("img"); img.src="https://www.google.com/s2/favicons?sz=64&domain="+encodeURIComponent(host); img.onerror=()=>{ img.style.visibility="hidden"; };
+    d.querySelector("b").textContent=l.n; d.querySelector("small").textContent=host+(new URL(l.u).pathname.replace(/\/$/,""));
+    d.querySelector(".x").onclick=()=>{ QL.splice(k,1); saveLinks(); renderLinks(); };
+    box.appendChild(d);
+  });
+}
+$("lkAdd").onclick=()=>{
+  let u=$("lkUrl").value.trim(), n=$("lkName").value.trim(); $("lkMsg").textContent="";
+  if(!u) return;
+  if(!/^https?:\/\//i.test(u)) u="https://"+u;
+  try{ const x=new URL(u); if(!x.hostname.includes(".")) throw 0; if(!n) n=x.hostname.replace(/^www\./,""); }
+  catch(e){ $("lkMsg").textContent="Die Adresse scheint nicht zu stimmen."; return; }
+  QL.push({n,u}); saveLinks(); renderLinks(); $("lkUrl").value=""; $("lkName").value="";
+};
+$("lkUrl").addEventListener("keydown",e=>{ if(e.key==="Enter") $("lkAdd").click(); });
+$("lkEdit").onclick=()=>{ const on=$("linkView").classList.toggle("editing"); $("lkEdit").textContent=on?"✔ Fertig":"✏️ Bearbeiten"; };
+$("lkReset").onclick=()=>{ if(confirm("Alle Links auf die Standard-Auswahl zurücksetzen?")){ QL=DEFAULT_QL.map(x=>({...x})); saveLinks(); renderLinks(); } };
+loadLinks();
+
+/* ===== Wetter-Sprechtext (zum Live-Vorlesen) ===== */
+let WXD=null, sayMode="heute", sayBig=false;
+const SAY_MODES = {kurz:"Kurz (Jingle)", heute:"Aktuell & heute", morgen:"Morgen", ausblick:"Ausblick"};
+const WDIR = ["Nord","Nordost","Ost","Südost","Süd","Südwest","West","Nordwest"];
+const deg = n => (n<0 ? "minus "+(-n) : String(n))+" Grad";
+const wdName = t => new Date(t+"T12:00").toLocaleDateString("de-DE",{weekday:"long"});
+const uhr = t => { const H=parseInt(t.slice(0,2),10), M=parseInt(t.slice(3,5),10); return M? H+" Uhr "+M : H+" Uhr"; };
+function clause(code,night){
+  const m={0:night?"ist es klar":"ist es sonnig",1:night?"ist es überwiegend klar":"ist es überwiegend sonnig",2:"ist es wolkig",3:"ist es bedeckt",
+    45:"ist es neblig",48:"ist es neblig",51:"nieselt es",53:"nieselt es",55:"nieselt es",56:"nieselt es, teils gefrierend",57:"nieselt es, teils gefrierend",
+    61:"regnet es leicht",63:"regnet es",65:"regnet es kräftig",66:"gibt es gefrierenden Regen",67:"gibt es gefrierenden Regen",
+    71:"schneit es leicht",73:"schneit es",75:"schneit es kräftig",77:"gibt es Schneegriesel",
+    80:"gibt es einzelne Regenschauer",81:"gibt es Regenschauer",82:"gibt es heftige Regenschauer",85:"gibt es Schneeschauer",86:"gibt es kräftige Schneeschauer",
+    95:"gewittert es",96:"gewittert es, auch Hagel ist möglich",99:"gewittert es, auch Hagel ist möglich"};
+  return m[code]||"ist es wechselhaft";
+}
+const isSnow = c => [71,73,75,77,85,86].includes(c);
+function windSentence(v,dirDeg,gust){
+  const dn=WDIR[Math.round(dirDeg/45)%8]; let s;
+  if(v<6) s="Es ist nahezu windstill.";
+  else if(v<20) s="Es weht ein schwacher Wind aus "+dn+".";
+  else if(v<39) s="Es weht ein mäßiger Wind aus "+dn+" mit "+r(v)+" Kilometern pro Stunde.";
+  else if(v<62) s="Es weht ein frischer Wind aus "+dn+" mit "+r(v)+" Kilometern pro Stunde.";
+  else if(v<75) s="Es weht ein starker Wind aus "+dn+" mit "+r(v)+" Kilometern pro Stunde.";
+  else s="Es stürmt aus "+dn+" mit "+r(v)+" Kilometern pro Stunde.";
+  if(gust>=50 && v>=20) s+=" Dazu kommen Böen bis "+r(gust)+" Kilometer pro Stunde.";
+  return s;
+}
+function rainSentence(p,code,part){
+  const sn=isSnow(code), w=sn?"Schnee":"Regen"; let s;
+  if(p<20) return "Es bleibt weitgehend trocken.";
+  if(p<50) s="Ein einzelner "+(sn?"Schneeschauer":"Schauer")+" ist möglich, die "+w+"wahrscheinlichkeit liegt bei "+p+" Prozent.";
+  else if(p<80) s="Es ist mit "+(sn?"Schneefall":"Schauern")+" zu rechnen, die "+w+"wahrscheinlichkeit liegt bei "+p+" Prozent.";
+  else s="Es "+(sn?"schneit":"regnet")+" häufig, die "+w+"wahrscheinlichkeit liegt bei "+p+" Prozent.";
+  return part ? s+" Am ehesten "+(sn?"schneit":"regnet")+" es "+part+"." : s;
+}
+function sayText(mode){
+  if(!WXD) return "";
+  const {c,h,d}=WXD, hour=parseInt(c.time.slice(11,13),10);
+  const night = c.time.slice(11,16) < d.sunrise[0].slice(11,16) || c.time.slice(11,16) >= d.sunset[0].slice(11,16);
+  const T=r(c.temperature_2m), F=r(c.apparent_temperature);
+  const evening = hour>=18, i0 = Math.max(0,h.time.findIndex(t=>t.startsWith(c.time.slice(0,13))));
+  const max0=r(d.temperature_2m_max[0]), max1=r(d.temperature_2m_max[1]), min1=r(d.temperature_2m_min[1]);
+  const nightMin = hour<10 ? r(d.temperature_2m_min[0]) : min1;
+  const pDay = d.precipitation_probability_max[0]||0;
+  const pNext = Math.max(0,...(h.precipitation_probability.slice(i0,i0+12).map(x=>x||0)));
+  const p = evening ? pNext : pDay;
+  const code0 = d.weather_code[0];
+  // Tageszeit mit der höchsten Regenwahrscheinlichkeit (nur verbleibende Stunden heute)
+  let part=""; if(!evening){
+    const parts=[["am Vormittag",6,11],["am Nachmittag",12,17],["am Abend",18,23]]; let best=0;
+    parts.forEach(([n,a,b])=>{ let m=0; h.time.forEach((t,k)=>{ if(t.startsWith(d.time[0])){ const H=parseInt(t.slice(11,13),10); if(H>=a&&H<=b&&H>=hour) m=Math.max(m,h.precipitation_probability[k]||0); } }); if(m>best&&m>=50){best=m;part=n;} });
+  }
+  const L=[];
+  if(mode==="kurz"){
+    L.push(STATION+" Wetter für "+TOWN+": Aktuell "+clause(c.weather_code,night)+" bei "+deg(T)+".");
+    L.push((evening?"Morgen werden es bis zu "+deg(max1):"Heute werden es bis zu "+deg(max0))+".");
+    L.push(p<20?"Es bleibt trocken.":(isSnow(code0)?"Schnee":"Regen")+"wahrscheinlichkeit: "+p+" Prozent.");
+  } else if(mode==="heute"){
+    L.push("Das Wetter für "+TOWN+" und Umgebung.");
+    L.push("Aktuell "+clause(c.weather_code,night)+", bei "+deg(T)+(Math.abs(F-T)>=3?", gefühlt wie "+deg(F):"")+".");
+    L.push(evening ? "In der Nacht sinken die Temperaturen auf "+deg(nightMin)+", morgen werden es bis zu "+deg(max1)+"."
+                   : "Tagsüber werden es bis zu "+deg(max0)+", in der Nacht sinken die Werte auf "+deg(nightMin)+".");
+    L.push(rainSentence(p,code0,part));
+    L.push(windSentence(c.wind_speed_10m,c.wind_direction_10m,c.wind_gusts_10m));
+    if(code0>=95) L.push("Achtung: Gewitter sind möglich.");
+    if(nightMin<=0) L.push("In der Nacht gibt es Frost, bitte Vorsicht auf überfrierender Nässe.");
+    if(!night && c.time.slice(11,16) < d.sunset[0].slice(11,16)) L.push("Die Sonne geht heute um "+uhr(d.sunset[0].slice(11,16))+" unter.");
+  } else if(mode==="morgen"){
+    L.push("Das Wetter für morgen in "+TOWN+" und Umgebung.");
+    L.push("Morgen, am "+wdName(d.time[1])+", "+clause(d.weather_code[1],false)+".");
+    L.push("Tagsüber werden es bis zu "+deg(max1)+", der Tiefstwert liegt bei "+deg(min1)+".");
+    L.push(rainSentence(d.precipitation_probability_max[1]||0,d.weather_code[1]));
+    const w1=r(d.wind_speed_10m_max[1]); L.push(w1<20?"Dazu weht nur ein schwacher Wind.":"Der Wind weht mit bis zu "+w1+" Kilometern pro Stunde.");
+    if(d.weather_code[1]>=95) L.push("Achtung: Gewitter sind möglich.");
+    if(min1<=0) L.push("Es gibt Frost, bitte Vorsicht auf überfrierender Nässe.");
+  } else {
+    L.push("Der Ausblick auf die nächsten Tage.");
+    for(let k=2;k<Math.min(d.time.length,6);k++){
+      const pk=d.precipitation_probability_max[k]||0;
+      L.push("Am "+wdName(d.time[k])+" "+clause(d.weather_code[k],false)+", die Höchstwerte liegen bei "+deg(r(d.temperature_2m_max[k]))+(pk>=50?", die "+(isSnow(d.weather_code[k])?"Schnee":"Regen")+"wahrscheinlichkeit bei "+pk+" Prozent":"")+".");
+    }
+  }
+  return L.join("\n");
+}
+function renderSay(){
+  const box=$("sayChips"); if(!box||!WXD) return; box.innerHTML="";
+  Object.entries(SAY_MODES).forEach(([k,n])=>{ const b=document.createElement("button"); b.className="chip"+(k===sayMode?" on":""); b.textContent=n; b.onclick=()=>{sayMode=k;renderSay();}; box.appendChild(b); });
+  const t=sayText(sayMode); $("sayText").textContent=t; $("sayText").classList.toggle("big",sayBig);
+  const words=t.split(/\s+/).filter(Boolean).length;
+  $("sayInfo").textContent="≈ "+Math.max(5,Math.round(words/2.4))+" Sek. Sprechzeit · Datenstand "+WXD.c.time.slice(11,16)+" Uhr";
+  $("sayBig").textContent=sayBig?"🔍 Normal":"🔍 Großanzeige";
+  $("sayBig").onclick=()=>{ sayBig=!sayBig; renderSay(); };
+  $("sayCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(t); $("sayCopy").textContent="✔ Kopiert"; }catch(e){ $("sayCopy").textContent="Markieren & Strg+C"; } setTimeout(()=>{ $("sayCopy").textContent="📋 Kopieren"; },1800); };
+}
+
+/* ===== Umschalter ===== */
+const VIEWS={news:["newsView","tabNews","#news"], wx:["wxView","tabWx","#wetter"], blitz:["blitzView","tabBlitz","#blitzer"], bau:["bauView","tabBau","#baustellen"], sport:["sportView","tabSport","#sport"], link:["linkView","tabLink","#links"]};
+function show(v){
+  for(const k in VIEWS){ $(VIEWS[k][0]).hidden = k!==v; $(VIEWS[k][1]).classList.toggle("on", k===v); }
+  history.replaceState(null,"",VIEWS[v][2]);
+}
+for(const k in VIEWS) $(VIEWS[k][1]).onclick=()=>show(k);
+for(const k in VIEWS) if(VIEWS[k][2]===location.hash) show(k);
+
+async function loadAll(){ await load(); await loadBlitz(); await loadBau(); await loadSport(); }
+$("refresh").onclick = () => { loadAll(); loadWx(); };
+$("restore").onclick=openHid;
+$("hidAll").onclick=()=>{ HID={}; hidChanged=true; saveHid(); openHid(); };
+$("hidClose").onclick=()=>$("hidDlg").close();
+$("hidDlg").addEventListener("close",()=>{ if(hidChanged){ hidChanged=false; loadAll(); } });
+updRestore();
+if(location.protocol.startsWith("http")) $("logout").hidden=false;   // Abmelden gibt es nur über den Server
+/* ===== Burger-Menü statt Reiterleiste ===== */
+(function(){
+  const nav=document.querySelector(".tabs"); nav.id="tabsNav";
+  const b=document.createElement("button"); b.id="burger"; b.setAttribute("aria-label","Menü öffnen");
+  const back=document.createElement("div"); back.id="menuBack"; document.body.appendChild(back);
+  nav.insertAdjacentHTML("afterbegin",'<span id="menuTitle">Menü</span><button id="menuClose" aria-label="Menü schließen">✕</button>');
+  const hdr=document.querySelector("header"), hl=document.createElement("div"); hl.className="hl";
+  hdr.prepend(hl); hl.append(b,hdr.querySelector(".logo"));
+  const label=()=>{ const on=nav.querySelector(".tab.on"); b.textContent="☰  "+(on?on.textContent:"Menü"); };
+  const open=o=>{ nav.classList.toggle("open",o); back.classList.toggle("open",o); };
+  b.onclick=()=>open(!nav.classList.contains("open"));
+  back.onclick=()=>open(false); $("menuClose").onclick=()=>open(false);
+  nav.addEventListener("click",e=>{ if(e.target.closest(".tab")) setTimeout(()=>{ open(false); label(); },0); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") open(false); });
+  const _s=show; show=function(v){ _s(v); label(); };
+  window.burgerRefresh=label; label();
+})();
+
+/* ===== Hörerzahl neben der Uhr (der Server fragt sie jede Minute ab) ===== */
+(function(){
+  const c=$("clock"), mid=document.createElement("div"), box=document.createElement("div");
+  mid.className="mid"; c.parentNode.insertBefore(mid,c); mid.append(c);
+  box.id="listeners"; mid.append(box);
+  const src=CFG.radio.listeners.type;
+  if(src==="none"){ box.hidden=true; return; }
+  box.textContent="🎧 …";
+  async function loadListeners(){
+    try{
+      const r=await fetch("/api/live"); if(!r.ok) throw 0; const j=await r.json();
+      if(j.listeners===null||j.ok===false) throw 0;
+      box.className=""; box.innerHTML='🎧 <b>'+(+j.listeners)+'</b> Hörer'; box.title="Aktuelle Hörer · Stand "+new Date(j.checked*1000).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr";
+    }catch(e){ box.className="off"; box.textContent="🎧 keine Daten"; box.title="Hörerzahl gerade nicht abrufbar"; }
+  }
+  loadListeners(); setInterval(loadListeners,20000);
+})();
+/* ===== Reiter ohne eingerichtete Quellen ausblenden ===== */
+$("tabBau").hidden=!AUTOBAHNEN.length&&!PLACES.length;
+$("tabSport").hidden=!Object.keys(LEAGUES).length&&!SPORT_FEEDS.length;
+loadAll(); loadWx(); setInterval(loadAll, REFRESH_MIN*60000); setInterval(loadWx, 15*60000); setInterval(()=>loadBau(true),120000);
+</script>
+<script src="/team.js"></script>
+<script src="/studio.js"></script>
+<script src="/onair.js"></script>
+</body>
+</html>

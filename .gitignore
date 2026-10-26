@@ -1,0 +1,7 @@
+# Daten des eigenen Senders (Benutzer, Passwort-Hashes, Nachrichten, Statistik) – nie hochladen
+data/
+__pycache__/
+*.pyc
+*.tmp
+.DS_Store
+Thumbs.db
