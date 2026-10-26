@@ -2,8 +2,8 @@
 
 Ein Info- und Studio-Dashboard für kleine Radiosender, Webradios und Lokalfunk. Es läuft auf dem Studio-PC im Browser und bündelt alles, was in der Moderation gebraucht wird:
 
-- **📰 Lokale Nachrichten** aus Google News und beliebigen RSS-Feeds, doppelte Meldungen werden zusammengefasst, Werbung und Traueranzeigen ausgefiltert. Ein Klick öffnet einen **fertigen Vorlesetext** (mit Quelle, Anmoderation oder Teaser).
-- **🌤️ Wetter** für den Sendeort mit **Sprechtext zum Vorlesen** (kurz, heute, morgen, Ausblick).
+- **📰 Lokale Nachrichten** aus beliebigen RSS-Feeds (optional Google News). Doppelte Meldungen werden zusammengefasst, Werbung und Traueranzeigen ausgefiltert. Ein Klick öffnet einen **Vorlesetext zum Bearbeiten** (mit Quelle oder Anmoderation).
+- **🌤️ Wetter** des Deutschen Wetterdienstes für den Sendeort, mit **Sprechtext zum Vorlesen** (kurz, heute, morgen, Ausblick).
 - **🚧 Baustellen und Sperrungen** auf den Autobahnen im Umkreis (Autobahn GmbH), mit Alarmton bei neuen Sperrungen.
 - **🚨 Blitzer**: Meldungen aus der Presse und eigene Hörer-Hinweise.
 - **⚽ Sport**: Bundesliga, 2. und 3. Liga mit Spieltag und Tabelle (OpenLigaDB), dazu Lokalsport.
@@ -35,7 +35,7 @@ Das schwarze Server-Fenster muss geöffnet bleiben, solange das Dashboard benutz
 | Bereich | Was du einträgst |
 | --- | --- |
 | **Sendegebiet** | Ort suchen. Daraus ergeben sich Koordinaten, Landkreis und Bundesland. Dazu die weiteren Orte im Sendegebiet, sie werden für Ortsfilter und Nachrichtensuche genutzt. |
-| **Nachrichtenquellen** | Mit **„Vorschläge erzeugen“** werden passende Google-News-Suchen angelegt. Eigene Quellen: Suchbegriffe (z. B. `"Musterstadt" Feuerwehr when:2d`) oder eine RSS-Adresse. |
+| **Nachrichtenquellen** | RSS-Adressen, z. B. von Lokalzeitung, ARD-Landesprogramm oder Polizei-Pressestelle. Optional Google-News-Suchen (z. B. `"Musterstadt" Feuerwehr when:2d`), aber **nur bei privater, nicht-kommerzieller Nutzung** (siehe unten). |
 | **Verkehr** | Autobahnen im Umfeld, z. B. `A7, A23`, und der Umkreis in km. |
 | **Sport** | Ligen auswählen und Vereine, die hervorgehoben werden. |
 | **Hörerzahl** | laut.fm-Stationsname, Icecast (`…/status-json.xsl`) oder Shoutcast v2 (`…/stats?sid=1&json=1`). |
@@ -49,9 +49,22 @@ Das schwarze Server-Fenster muss geöffnet bleiben, solange das Dashboard benutz
 - Die Verbindung ist **nicht verschlüsselt** (HTTP). Die Netzwerkfreigabe deshalb nur in vertrauenswürdigen Netzen einschalten und das Dashboard nicht direkt ins Internet stellen.
 - **Passwort vergessen?** Server beenden und `passwort-zuruecksetzen.bat` starten (oder `python server.py --passwort`). Damit wird das Passwort des Haupt-Administrators neu gesetzt.
 
-## Datenquellen
+## Datenquellen und Nutzungsbedingungen
 
-Alle Quellen sind kostenlos und brauchen keinen API-Schlüssel: [Open-Meteo](https://open-meteo.com) (Wetter und Ortssuche), [Autobahn GmbH](https://verkehr.autobahn.de) (Verkehr), [OpenLigaDB](https://www.openligadb.de) (Fußball), Google News (RSS), [abalin.net](https://nameday.abalin.net) (Namenstage) und die Schnittstellen von laut.fm, Icecast und Shoutcast. Bitte die Nutzungsbedingungen der jeweiligen Dienste beachten.
+Alle Quellen sind kostenlos und brauchen keinen API-Schlüssel. **Jeder Sender ist selbst dafür verantwortlich, die Bedingungen der Dienste einzuhalten**, die er nutzt. Die Übersicht unten ist eine Hilfe und keine Rechtsberatung (Stand: Oktober 2026).
+
+| Dienst | Wofür | Bedingungen |
+| --- | --- | --- |
+| [Deutscher Wetterdienst](https://www.dwd.de) über [Bright Sky](https://brightsky.dev) | Wetter | DWD-Daten unter [CC BY 4.0](https://www.dwd.de/DE/service/rechtliche_hinweise/rechtliche_hinweise_node.html), auch kommerziell erlaubt, Quellenangabe nötig (steht im Dashboard). Bright Sky ist für alle Zwecke frei nutzbar. |
+| [Die Autobahn GmbH des Bundes](https://verkehr.autobahn.de) | Baustellen, Sperrungen | Öffentliche Schnittstelle ohne Schlüssel. Quelle wird im Dashboard genannt. |
+| [OpenLigaDB](https://www.openligadb.de) | Fußball-Ergebnisse und Tabellen | Daten unter der [Open Database License](https://opendatacommons.org/licenses/odbl/), Quellenangabe nötig (steht im Dashboard). Vereinswappen gehören den Vereinen. |
+| [Nominatim / OpenStreetMap](https://nominatim.openstreetmap.org) | Ortssuche in der Einrichtung | Daten © OpenStreetMap-Mitwirkende ([ODbL](https://www.openstreetmap.org/copyright)). Nur einzelne Suchen gemäß [Nutzungsrichtlinie](https://operations.osmfoundation.org/policies/nominatim/). |
+| [abalin.net](https://nameday.abalin.net) | Namenstage | Freies Open-Source-Projekt. Es wird nur einmal am Tag abgefragt. |
+| laut.fm, Icecast, Shoutcast | Hörerzahl, Stream-Status | Es werden nur die Daten des eigenen Senders abgefragt. |
+| RSS-Feeds (selbst eingetragen) | Nachrichten | Bedingungen des jeweiligen Anbieters beachten. Viele Verlage erlauben RSS nur zum Lesen, nicht zur Weiterverbreitung. |
+| Google News (optional, standardmäßig **aus**) | Nachrichtensuche | Laut Hinweis im Feed nur *„within a personal feed reader for personal, non-commercial use“*, jede andere Nutzung ist untersagt. **Für Sender mit Werbung oder Einnahmen nicht zulässig.** |
+
+**Nachrichten vorlesen:** Fakten sind frei, Artikeltexte aber urheberrechtlich geschützt (dazu kommt das Leistungsschutzrecht der Presseverlage, §§ 87f ff. UrhG). Meldungen deshalb in eigenen Worten wiedergeben und die Quelle nennen. Der Vorlesetext im Dashboard ist dafür bearbeitbar.
 
 ## Lizenz
 

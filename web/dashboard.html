@@ -75,7 +75,7 @@ p{margin:0;font-size:13px;color:var(--mut);line-height:1.4}
 .tile{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(20,30,50,.06)}
 .tile:hover{border-color:var(--acc)}
 .tile a{display:flex;align-items:center;gap:14px;padding:18px;min-height:88px;text-decoration:none;color:inherit}
-.tile img{width:38px;height:38px;border-radius:8px;flex:none}
+.tile .ic{width:38px;height:38px;border-radius:8px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px}
 .tile b{display:block;font-size:16px}.tile small{color:var(--mut);font-size:12px;word-break:break-all}
 .tile .x{display:none;position:absolute;top:6px;right:6px;padding:2px 8px;border-color:var(--acc);color:var(--acc)}
 .editing .tile .x{display:block}
@@ -173,7 +173,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="bar" id="spLeagues"></div>
   <div class="err" id="spErr"></div>
   <div class="sp"><div class="box" id="spMatches"></div><div class="box" id="spTable"></div></div>
-  <div class="src2">Ergebnisse &amp; Tabellen: OpenLigaDB (Community-Daten, kurze Verzögerungen und Lücken sind möglich).</div>
+  <div class="src2">Ergebnisse &amp; Tabellen: <a href="https://www.openligadb.de" target="_blank" rel="noopener">OpenLigaDB</a>, Lizenz <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a> (Community-Daten, kurze Verzögerungen und Lücken sind möglich).</div>
   <div class="bar" id="spNewsChips"></div>
   <main id="spNews"></main>
 </section>
@@ -189,6 +189,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="bar" id="bauChips"></div>
   <div class="err" id="bauErr"></div>
   <main id="bauList"></main>
+  <div class="src2">Verkehrsdaten: <a href="https://verkehr.autobahn.de" target="_blank" rel="noopener">Die Autobahn GmbH des Bundes</a></div>
   <h2 class="sub">Aus den Nachrichten</h2>
   <main id="bauNews"></main>
 </section>
@@ -199,7 +200,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 const REFRESH_MIN = 5;      // automatische Aktualisierung alle X Minuten
 const NEW_MIN = 60;         // "NEU"-Badge für Meldungen jünger als X Minuten
 const gn = q => "https://news.google.com/rss/search?hl=de&gl=DE&ceid=DE:de&q=" + encodeURIComponent(q);
-const feedsOf = list => (list||[]).map(f=>({name:f.name, url:f.url||gn(f.q), filter:!!f.filter}));
+const GNEWS = !!CFG.google_news;   // Google-News-Suchen nur, wenn in den Einstellungen erlaubt (laut Google nur privat/nicht-kommerziell)
+const feedsOf = list => (list||[]).filter(f=>f.url||GNEWS).map(f=>({name:f.name, url:f.url||gn(f.q), filter:!!f.filter}));
 const STATION = CFG.station.name;
 const TOWN = CFG.location.name || "der Region";
 // Orte für Ortsfilter und Stichworte (filter:true = nur Meldungen mit einem dieser Stichworte)
@@ -365,31 +367,83 @@ function render(){
 }
 
 function renderList(){
-  cards($("list"), items.filter(i => (active==="Alle"||(i.sources||[i]).some(s=>s.from===active)) && (activePlace==="Alle Orte"||hasPlace(i,activePlace)) && (!q||(i.title+i.text).toLowerCase().includes(q))), "Keine Meldungen gefunden.");
+  cards($("list"), items.filter(i => (active==="Alle"||(i.sources||[i]).some(s=>s.from===active)) && (activePlace==="Alle Orte"||hasPlace(i,activePlace)) && (!q||(i.title+i.text).toLowerCase().includes(q))), FEEDS.length?"Keine Meldungen gefunden.":"Noch keine Nachrichtenquellen eingerichtet (⚙️ Einstellungen → Nachrichtenquellen).");
 }
 
 
-/* ===== Wetter (Open-Meteo, kostenlos, ohne Anmeldung) ===== */
+/* ===== Wetter (Deutscher Wetterdienst über Bright Sky – frei nutzbar, auch kommerziell, mit Quellenangabe) ===== */
 const WX_LAT = CFG.location.lat, WX_LON = CFG.location.lon;
-const WX_URL = "https://api.open-meteo.com/v1/forecast?latitude="+WX_LAT+"&longitude="+WX_LON
- +"&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
- +"&hourly=temperature_2m,precipitation_probability,weather_code"
- +"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset"
- +"&timezone=Europe%2FBerlin&forecast_days=7&wind_speed_unit=kmh";
+const BS = "https://api.brightsky.dev/";
+const ymdL = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+// Wetterlage aus Bright-Sky-Daten als WMO-Code (für Symbol und Sprechtext)
+function bsCode(r){
+  const p=r.precipitation||0, cond=r.condition||"", ic=r.icon||"";
+  if(cond==="thunderstorm"||ic==="thunderstorm") return 95;
+  if(cond==="hail"||ic==="hail") return 96;
+  if(cond==="snow"||ic==="snow") return p>=2?75:p>=0.5?73:71;
+  if(cond==="sleet"||ic==="sleet") return 68;
+  if((cond==="rain"&&p>0)||ic==="rain") return p>=4?65:p>=0.5?63:61;
+  if(cond==="fog"||ic==="fog") return 45;
+  if(ic.startsWith("clear")) return 0;
+  if(ic.startsWith("partly")) return 2;
+  if(ic==="cloudy") return 3;
+  const cc=r.cloud_cover; return cc==null?3:cc<20?0:cc<50?1:cc<85?2:3;
+}
+const WX_RANK=[95,96,75,73,71,68,65,63,61,45];
+function dayCode(codes){   // stärkstes Wetterereignis, sonst die häufigste Bewölkung
+  for(const c of WX_RANK) if(codes.includes(c)) return c;
+  const n={}; codes.forEach(c=>n[c]=(n[c]||0)+1); return +Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
+}
+function sunTimes(day){   // Sonnenauf- und -untergang (Sonnenstandsgleichung) -> ["HH:MM","HH:MM"] Ortszeit
+  const rad=Math.PI/180, [y,m,dd]=day.split("-").map(Number), JD=Date.UTC(y,m-1,dd,12)/864e5+2440587.5;
+  const Js=JD-2451545+0.0008-WX_LON/360, M=(357.5291+0.98560028*Js)%360;
+  const C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad), L=(M+C+180+102.9372)%360;
+  const Jt=2451545+Js+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*L*rad), dec=Math.asin(Math.sin(L*rad)*Math.sin(23.4397*rad));
+  const w=Math.acos((Math.sin(-0.833*rad)-Math.sin(WX_LAT*rad)*Math.sin(dec))/(Math.cos(WX_LAT*rad)*Math.cos(dec)))/rad;
+  const t=J=>{ const d=new Date((J-2440587.5)*864e5); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
+  return [t(Jt-w/360), t(Jt+w/360)];
+}
+const feels=(T,v)=>T<=10&&v>4.8 ? 13.12+0.6215*T-11.37*v**0.16+0.3965*T*v**0.16 : T;   // Windchill
+async function loadWxData(){
+  const t0=new Date(), t7=new Date(); t7.setDate(t7.getDate()+7);
+  const q="lat="+WX_LAT+"&lon="+WX_LON+"&tz=Europe/Berlin";
+  const [fc,cw]=await Promise.all([jget(BS+"weather?"+q+"&date="+ymdL(t0)+"&last_date="+ymdL(t7)), jget(BS+"current_weather?"+q).catch(()=>null)]);
+  const R=fc.weather.filter(r=>r.temperature!=null);
+  const h={time:R.map(r=>r.timestamp.slice(0,16)), temperature_2m:R.map(r=>r.temperature),
+    precipitation_probability:R.map(r=>r.precipitation_probability), weather_code:R.map(bsCode)};
+  const now=new Date(), hourKey=ymdL(now)+"T"+String(now.getHours()).padStart(2,"0");
+  const hr=R.find(r=>r.timestamp.startsWith(hourKey))||R[0], w=(cw&&cw.weather)||{};
+  const T=w.temperature??hr.temperature, V=w.wind_speed_10??hr.wind_speed;
+  const c={time:hourKey+":"+String(now.getMinutes()).padStart(2,"0"), temperature_2m:T, apparent_temperature:feels(T,V),
+    relative_humidity_2m:w.relative_humidity??hr.relative_humidity??"–", precipitation:w.precipitation_60??hr.precipitation??0,
+    weather_code:bsCode(w.icon?{precipitation:w.precipitation_60,condition:w.condition,icon:w.icon,cloud_cover:w.cloud_cover}:hr),
+    wind_speed_10m:V, wind_direction_10m:w.wind_direction_10??hr.wind_direction, wind_gusts_10m:w.wind_gust_speed_10??hr.wind_gust_speed??V};
+  const days=[...new Set(R.map(r=>r.timestamp.slice(0,10)))].filter(day=>R.filter(r=>r.timestamp.startsWith(day)).length>=12||day===ymdL(now)).slice(0,7);
+  const d={time:days,weather_code:[],temperature_2m_max:[],temperature_2m_min:[],precipitation_sum:[],precipitation_probability_max:[],wind_speed_10m_max:[],sunrise:[],sunset:[]};
+  days.forEach(day=>{
+    const rs=R.filter(r=>r.timestamp.startsWith(day)), daytime=rs.filter(r=>{ const H=+r.timestamp.slice(11,13); return H>=7&&H<=20; });
+    const [sr,ss]=sunTimes(day);
+    d.weather_code.push(dayCode((daytime.length?daytime:rs).map(bsCode)));
+    d.temperature_2m_max.push(Math.max(...rs.map(r=>r.temperature))); d.temperature_2m_min.push(Math.min(...rs.map(r=>r.temperature)));
+    d.precipitation_sum.push(rs.reduce((s,r)=>s+(r.precipitation||0),0)); d.precipitation_probability_max.push(Math.max(0,...rs.map(r=>r.precipitation_probability||0)));
+    d.wind_speed_10m_max.push(Math.max(0,...rs.map(r=>r.wind_speed||0))); d.sunrise.push(day+"T"+sr); d.sunset.push(day+"T"+ss);
+  });
+  return {c,h,d};
+}
 function wx(c){
   const m={0:["☀️","Klar"],1:["🌤️","Überwiegend klar"],2:["⛅","Teils bewölkt"],3:["☁️","Bedeckt"],45:["🌫️","Nebel"],48:["🌫️","Reifnebel"],
   51:["🌦️","Leichter Nieselregen"],53:["🌦️","Nieselregen"],55:["🌧️","Starker Nieselregen"],56:["🌧️","Gefrierender Nieselregen"],57:["🌧️","Gefrierender Nieselregen"],
   61:["🌧️","Leichter Regen"],63:["🌧️","Regen"],65:["🌧️","Starkregen"],66:["🌧️","Gefrierender Regen"],67:["🌧️","Gefrierender Regen"],
   71:["🌨️","Leichter Schneefall"],73:["🌨️","Schneefall"],75:["❄️","Starker Schneefall"],77:["🌨️","Schneegriesel"],
   80:["🌦️","Regenschauer"],81:["🌧️","Kräftige Schauer"],82:["🌧️","Heftige Schauer"],85:["🌨️","Schneeschauer"],86:["🌨️","Starke Schneeschauer"],
-  95:["⛈️","Gewitter"],96:["⛈️","Gewitter mit Hagel"],99:["⛈️","Gewitter mit Hagel"]};
+  68:["🌨️","Schneeregen"],95:["⛈️","Gewitter"],96:["⛈️","Gewitter mit Hagel"],99:["⛈️","Gewitter mit Hagel"]};
   return m[c]||["❔","–"];
 }
 const dir = d => ["N","NO","O","SO","S","SW","W","NW"][Math.round(d/45)%8];
 const r = v => Math.round(v);
 async function loadWx(){
   try{
-    const j = await (await fetch(WX_URL)).json(); const c=j.current, h=j.hourly, d=j.daily; WXD={c,h,d};
+    const {c,h,d} = await loadWxData(); WXD={c,h,d};
     const [ico,desc]=wx(c.weather_code);
     let i0 = h.time.findIndex(t => t.startsWith(c.time.slice(0,13))); if(i0<0) i0=0;
     const hours = h.time.slice(i0,i0+24).map((t,k)=>{const q=i0+k,[e]=wx(h.weather_code[q]);
@@ -415,7 +469,7 @@ async function loadWx(){
        </div></div>
      <h2>Nächste 24 Stunden</h2><div class="hours">${hours}</div>
      <h2>7-Tage-Vorhersage</h2><div class="days">${days}</div>
-     <div class="state" style="padding:0">Wetterdaten: Open-Meteo · Stand ${new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})} Uhr</div>`;
+     <div class="state" style="padding:0">Wetterdaten: <a href="https://www.dwd.de" target="_blank" rel="noopener">Deutscher Wetterdienst</a> (<a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>), abgerufen über <a href="https://brightsky.dev" target="_blank" rel="noopener">Bright Sky</a> · Stand ${new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})} Uhr</div>`;
     renderSay();
   }catch(e){ $("wxView").innerHTML='<div class="state">Wetter konnte nicht geladen werden (Internetverbindung prüfen).</div>'; }
 }
@@ -471,7 +525,7 @@ async function loadBlitz(){
   $("bzErr").textContent="";
   const {items,failed} = await loadMany(BLITZ_FEEDS);
   const re=/blitz|geschwindigkeit|tempo|radar|raser|laser|messung|kontroll/i;
-  cards($("bzList"), items.filter(i=>re.test(i.title+" "+i.text)), "Keine Meldungen zu Geschwindigkeitskontrollen in den letzten 7 Tagen gefunden.");
+  cards($("bzList"), items.filter(i=>re.test(i.title+" "+i.text)), BLITZ_FEEDS.length?"Keine Meldungen zu Geschwindigkeitskontrollen in den letzten 7 Tagen gefunden.":"Keine Nachrichtenquelle für Blitzer eingerichtet.");
   if(failed.length) $("bzErr").textContent="Nicht erreichbar: "+failed.join(", ");
 }
 
@@ -511,7 +565,7 @@ async function loadBau(quick){
   if(fail) $("bauErr").textContent="Autobahn-Daten teilweise nicht erreichbar ("+fail+" von "+jobs.length+" Abfragen).";
   renderBau(); checkBauAlerts(fail>0);
   if(quick) return;
-  if(!PLACES.length) return;
+  if(!PLACES.length||!GNEWS){ $("bauNews").previousElementSibling.hidden=true; return; }
   const {items}=await loadMany([{name:"Baustellen",url:gn("(Baustelle OR Sperrung OR Umleitung) ("+PLACES.slice(0,6).map(p=>'"'+p+'"').join(" OR ")+") when:5d"),filter:false}]);
   cards($("bauNews"), items.filter(i=>/baustell|sperr|umleit|bauarbeit|fahrbahn|verkehr/i.test(i.title+" "+i.text)).slice(0,18), "Keine passenden Nachrichten gefunden.");
 }
@@ -548,7 +602,7 @@ const SEASON = (()=>{ const d=new Date(); return d.getMonth()>=6 ? d.getFullYear
 const OL = "https://api.openligadb.de/";
 const LOCAL_SPORT = "Sport vor Ort";   // automatisch aus den Orten – wird zusätzlich auf Sport-Stichworte gefiltert
 const SPORT_FEEDS = [
-  ...(PLACES.length?[{name:LOCAL_SPORT, url: gn("("+PLACES.slice(0,6).map(p=>'"'+p+'"').join(" OR ")+") (Fußball OR Handball OR Basketball OR Volleyball OR Kreisliga OR Landesliga OR Sportverein OR Turnier OR Meisterschaft) when:14d"), filter:false}]:[]),
+  ...(PLACES.length&&GNEWS?[{name:LOCAL_SPORT, url: gn("("+PLACES.slice(0,6).map(p=>'"'+p+'"').join(" OR ")+") (Fußball OR Handball OR Basketball OR Volleyball OR Kreisliga OR Landesliga OR Sportverein OR Turnier OR Meisterschaft) when:14d"), filter:false}]:[]),
   ...feedsOf(CFG.sport.feeds)
 ];
 let sportLeague=Object.keys(LEAGUES)[0]||"", sportData={}, mdSel={}, sportNews=[], sportFeed="Alle";
@@ -629,9 +683,10 @@ function renderLinks(){
   QL.forEach((l,k)=>{
     let host=""; try{ host=new URL(l.u).hostname; }catch(e){}
     const d=document.createElement("div"); d.className="tile";
-    d.innerHTML='<a target="_blank" rel="noopener"><img alt=""><span><b></b><small></small></span></a><button class="x" title="Entfernen">✕</button>';
+    d.innerHTML='<a target="_blank" rel="noopener"><span class="ic" aria-hidden="true"></span><span><b></b><small></small></span></a><button class="x" title="Entfernen">✕</button>';
     const a=d.querySelector("a"); a.href=l.u;
-    const img=d.querySelector("img"); img.src="https://www.google.com/s2/favicons?sz=64&domain="+encodeURIComponent(host); img.onerror=()=>{ img.style.visibility="hidden"; };
+    const ic=d.querySelector(".ic"), base=host.replace(/^www\./,"");   // Buchstaben-Symbol statt Favicon-Dienst (keine Anfragen an Dritte)
+    ic.textContent=(l.n||base||"?").trim().charAt(0).toUpperCase(); ic.style.background="hsl("+[...base].reduce((a,ch)=>a+ch.charCodeAt(0),0)%360+",55%,45%)";
     d.querySelector("b").textContent=l.n; d.querySelector("small").textContent=host+(new URL(l.u).pathname.replace(/\/$/,""));
     d.querySelector(".x").onclick=()=>{ QL.splice(k,1); saveLinks(); renderLinks(); };
     box.appendChild(d);
@@ -662,7 +717,7 @@ function clause(code,night){
     45:"ist es neblig",48:"ist es neblig",51:"nieselt es",53:"nieselt es",55:"nieselt es",56:"nieselt es, teils gefrierend",57:"nieselt es, teils gefrierend",
     61:"regnet es leicht",63:"regnet es",65:"regnet es kräftig",66:"gibt es gefrierenden Regen",67:"gibt es gefrierenden Regen",
     71:"schneit es leicht",73:"schneit es",75:"schneit es kräftig",77:"gibt es Schneegriesel",
-    80:"gibt es einzelne Regenschauer",81:"gibt es Regenschauer",82:"gibt es heftige Regenschauer",85:"gibt es Schneeschauer",86:"gibt es kräftige Schneeschauer",
+    80:"gibt es einzelne Regenschauer",81:"gibt es Regenschauer",82:"gibt es heftige Regenschauer",85:"gibt es Schneeschauer",86:"gibt es kräftige Schneeschauer",68:"gibt es Schneeregen",
     95:"gewittert es",96:"gewittert es, auch Hagel ist möglich",99:"gewittert es, auch Hagel ist möglich"};
   return m[code]||"ist es wechselhaft";
 }

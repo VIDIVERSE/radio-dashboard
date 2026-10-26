@@ -45,6 +45,7 @@ document.body.insertAdjacentHTML("afterbegin",`
   <div id="ndSources" style="font-size:13px;margin:0 0 8px" hidden></div>
   <div class="bar" id="ndModes" style="padding:0 0 8px"></div>
   <textarea id="ndText" rows="6"></textarea>
+  <div id="ndTip" style="font-size:12px;color:var(--mut);margin-top:4px">💡 Der Text ist bearbeitbar. Meldungen am besten in eigenen Worten wiedergeben und die Quelle nennen – wörtliche Artikeltexte sind urheberrechtlich geschützt.</div>
   <div class="sayfoot" style="margin-top:8px"><span id="ndInfo"></span><button id="ndCopy">📋 Kopieren</button><button id="ndBig">🔍 Großanzeige</button><a id="ndOpen" class="lk" target="_blank" rel="noopener">↗ Artikel öffnen</a></div>
   <div style="display:flex;gap:8px;justify-content:space-between;margin-top:12px"><span><button id="ndPrev">◀</button> <button id="ndNext">▶</button> <button id="ndHide">🚫 Ausblenden</button></span><button id="ndClose">Schließen</button></div>
 </dialog>
@@ -60,7 +61,7 @@ document.body.insertAdjacentHTML("afterbegin",`
 </dialog>`);
 
 /* ---------- Nachricht öffnen: Fenster mit Vorlesetext ---------- */
-const ND_MODES={kurz:"Kurz",quelle:"Mit Quelle",anmod:"Mit Anmoderation",teaser:"Mit Teaser"};
+const ND_MODES={kurz:"Kurz",quelle:"Mit Quelle",anmod:"Mit Anmoderation",teaser:"Mit Teaser (wörtlich – bitte umformulieren)"};
 const BAU_MODES={kurz:"Kurz",detail:"Mit Details",quelle:"Mit Quelle"};
 function bauText(i,m){
   const kind=i.svc==="closure"?(i.blocked?"Vollsperrung":"Sperrung"):i.svc==="roadworks"?"Baustelle":"Verkehrsmeldung";

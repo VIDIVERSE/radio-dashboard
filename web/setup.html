@@ -73,6 +73,7 @@ button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-wei
     <label>Ort suchen <small>Bestimmt Wetter, Umkreis für Verkehrsmeldungen und die Vorschläge für Nachrichtenquellen.</small>
       <span class="row"><input id="geoQ" placeholder="z. B. Elmshorn" style="flex:1"><button id="geoGo" type="button">🔍 Suchen</button></span></label>
     <div id="geoList"></div>
+    <p class="hint" style="margin-top:-6px">Ortssuche: <a href="https://nominatim.openstreetmap.org" target="_blank" rel="noopener">Nominatim</a>, Daten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap-Mitwirkende</a> (ODbL).</p>
     <div class="grid">
       <label>Sendeort *<input id="locName" maxlength="60"></label>
       <label>Landkreis / Region<input id="locRegion" maxlength="60" placeholder="z. B. Kreis Pinneberg"></label>
@@ -87,9 +88,11 @@ button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-wei
 
   <section>
     <h2><span class="n">4</span> Nachrichtenquellen</h2>
-    <p class="hint">Je Zeile ein Name und entweder <b>Suchbegriffe für Google News</b> (z. B. <code>"Musterstadt" when:2d</code>) oder die <b>Adresse eines RSS-Feeds</b> (beginnt mit https://). „Nur mit Ortsbezug“ eignet sich für überregionale Feeds.</p>
+    <p class="hint">Je Zeile ein Name und die <b>Adresse eines RSS-Feeds</b> (beginnt mit https://), z. B. von der Lokalzeitung, dem Landesprogramm der ARD oder der Polizei-Pressestelle. Viele Nachrichtenseiten nennen ihre RSS-Adressen unten auf der Seite oder unter „RSS“. „Nur mit Ortsbezug“ eignet sich für überregionale Feeds. Bitte die Nutzungsbedingungen der jeweiligen Quelle beachten.</p>
+    <label class="check"><input type="checkbox" id="gnews"> Google-News-Suchen verwenden</label>
+    <p class="hint" id="gnewsHint" style="margin-top:-6px">⚠️ Google erlaubt die Nutzung seiner News-Feeds laut Feed-Hinweis <b>nur in einem persönlichen Feedreader für private, nicht-kommerzielle Zwecke</b>. Für Sender mit Werbung oder Einnahmen ist das nicht zulässig – dann bitte nur RSS-Feeds verwenden. Ist der Haken gesetzt, kann statt einer Adresse auch eine Suche eingetragen werden, z. B. <code>"Musterstadt" when:2d</code>.</p>
     <div class="rows" id="newsRows"></div>
-    <div class="row"><button type="button" id="newsAdd">＋ Quelle</button><button type="button" id="suggest">✨ Vorschläge aus dem Sendegebiet erzeugen</button></div>
+    <div class="row"><button type="button" id="newsAdd">＋ Quelle</button><button type="button" id="suggest">✨ Google-News-Vorschläge aus dem Sendegebiet erzeugen</button></div>
   </section>
 
   <section>
@@ -163,7 +166,7 @@ const quote=p=>'"'+p+'"';
 /* ---------- Zeilen-Editoren für Quellen und Links ---------- */
 function feedRow(box,f={}){
   const r=document.createElement("div"); r.className="r";
-  r.innerHTML='<input class="n" placeholder="Name" maxlength="60"><input class="q" placeholder="Suchbegriffe oder https://…/rss"><label class="f"><input type="checkbox" class="fl"> nur mit Ortsbezug</label><button type="button" title="Entfernen">✕</button>';
+  r.innerHTML='<input class="n" placeholder="Name" maxlength="60"><input class="q" placeholder="'+($("gnews").checked?"Suchbegriffe oder https://…/rss":"https://…/rss")+'"><label class="f"><input type="checkbox" class="fl"> nur mit Ortsbezug</label><button type="button" title="Entfernen">✕</button>';
   r.querySelector(".n").value=f.name||""; r.querySelector(".q").value=f.url||f.q||""; r.querySelector(".fl").checked=!!f.filter;
   r.querySelector("button").onclick=()=>r.remove(); $(box).appendChild(r);
 }
@@ -179,16 +182,16 @@ const links=box=>[...$(box).children].map(r=>{ let u=r.querySelector(".u").value
 [["newsAdd","newsRows",feedRow],["bzAdd","bzRows",feedRow],["spAdd","spRows",feedRow],["trLinkAdd","trLinks",linkRow],["bzLinkAdd","bzLinks",linkRow],["qlAdd","qlRows",linkRow]]
   .forEach(([b,box,fn])=>$(b).onclick=()=>fn(box));
 
-/* ---------- Ortssuche (Open-Meteo Geocoding, kostenlos) ---------- */
-const STATE_BY_NAME=Object.fromEntries(Object.entries(STATES).map(([k,v])=>[v,k]));
+/* ---------- Ortssuche (OpenStreetMap Nominatim – nur bei Klick, eine Anfrage pro Suche) ---------- */
 async function geo(){
   const q=$("geoQ").value.trim(), box=$("geoList"); if(!q) return; box.textContent="Suche …";
   try{
-    const j=await (await fetch("https://geocoding-api.open-meteo.com/v1/search?count=8&language=de&format=json&countryCode=DE&name="+encodeURIComponent(q))).json();
-    box.innerHTML=""; if(!j.results||!j.results.length){ box.textContent="Nichts gefunden – Ort und Koordinaten bitte von Hand eintragen."; return; }
-    j.results.forEach(g=>{ const b=document.createElement("button"); b.type="button"; b.textContent="📍 "+[g.name,g.admin3!==g.name?g.admin3:"",g.admin2,g.admin1].filter(Boolean).join(", ");
-      b.onclick=()=>{ $("locName").value=g.name; $("locRegion").value=g.admin2||(g.admin3!==g.name&&g.admin3)||""; $("locState").value=STATE_BY_NAME[g.admin1]||"";
-        $("locLat").value=g.latitude.toFixed(4); $("locLon").value=g.longitude.toFixed(4); box.innerHTML="";
+    const j=await (await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=de&countrycodes=de&limit=8&q="+encodeURIComponent(q))).json();
+    box.innerHTML=""; if(!j.length){ box.textContent="Nichts gefunden – Ort und Koordinaten bitte von Hand eintragen."; return; }
+    j.forEach(g=>{ const a=g.address||{}, name=a.city||a.town||a.village||a.municipality||g.name;
+      const b=document.createElement("button"); b.type="button"; b.textContent="📍 "+g.display_name;
+      b.onclick=()=>{ $("locName").value=name; $("locRegion").value=a.county||""; $("locState").value=(a["ISO3166-2-lvl4"]||"").replace("DE-","");
+        $("locLat").value=(+g.lat).toFixed(4); $("locLon").value=(+g.lon).toFixed(4); box.innerHTML="";
         if(!feeds("newsRows").length) suggest(); };
       box.appendChild(b); });
   }catch(e){ box.textContent="Ortssuche nicht erreichbar – bitte von Hand eintragen."; }
@@ -199,13 +202,14 @@ $("geoGo").onclick=geo; $("geoQ").addEventListener("keydown",e=>{ if(e.key==="En
 function suggest(){
   const town=$("locName").value.trim(), region=$("locRegion").value.trim(), places=list($("locPlaces").value).slice(0,8);
   if(!town){ msg("Bitte zuerst den Sendeort eintragen.",true); return; }
+  if(!links("bzLinks").length) linkRow("bzLinks",{n:"Polizeimeldungen "+(region||town),u:"https://www.presseportal.de/blaulicht/r/"+encodeURIComponent(region||town)});
+  if(!$("gnews").checked){ msg("Ohne Google News bitte die RSS-Adressen deiner Nachrichtenquellen von Hand eintragen.",false); return; }
   if((feeds("newsRows").length||feeds("bzRows").length)&&!confirm("Vorhandene Nachrichten- und Blitzer-Quellen durch Vorschläge ersetzen?")) return;
   $("newsRows").innerHTML=""; $("bzRows").innerHTML="";
   feedRow("newsRows",{name:town+" (alle Medien)",q:quote(town)+" when:2d"});
   if(region) feedRow("newsRows",{name:region,q:quote(region)+" when:2d"});
   if(places.length) feedRow("newsRows",{name:"Umgebung",q:"("+places.map(quote).join(" OR ")+") when:2d"});
   feedRow("bzRows",{name:"Blitzer "+(region||town),q:"(Blitzer OR Geschwindigkeitskontrolle OR Radarkontrolle) ("+[town,region].filter(Boolean).map(quote).join(" OR ")+") when:7d"});
-  if(!links("bzLinks").length) linkRow("bzLinks",{n:"Polizeimeldungen "+(region||town),u:"https://www.presseportal.de/blaulicht/r/"+encodeURIComponent(region||town)});
   msg("Vorschläge eingetragen – gern noch anpassen.",false);
 }
 $("suggest").onclick=suggest;
@@ -226,6 +230,11 @@ $("logoFile").onchange=()=>{
   rd.readAsDataURL(f);
 };
 
+/* ---------- Google News an/aus ---------- */
+function gnUi(){ const on=$("gnews").checked; $("suggest").hidden=!on;
+  document.querySelectorAll(".r .q").forEach(i=>i.placeholder=on?"Suchbegriffe oder https://…/rss":"https://…/rss"); }
+$("gnews").onchange=gnUi;
+
 /* ---------- Hörerzahl-Quelle ---------- */
 function lsUi(){ const t=$("lsType").value; $("lsUrlL").hidden=t==="none"; $("lsHint").textContent=LS_HINT[t]; $("lsUrl").placeholder=t==="lautfm"?"meinradio":"https://…"; }
 $("lsType").onchange=lsUi;
@@ -237,6 +246,7 @@ function fill(c){
   LOGO=c.logo||""; showLogo();
   const L=c.location; $("locName").value=L.name; $("locRegion").value=L.region; $("locState").value=L.state;
   $("locLat").value=L.name?L.lat:""; $("locLon").value=L.name?L.lon:""; $("locPlaces").value=L.places.join(", "); $("locKeys").value=L.keywords.join(", ");
+  $("gnews").checked=!!c.google_news; gnUi();
   ["newsRows","bzRows","spRows","trLinks","bzLinks","qlRows"].forEach(b=>$(b).innerHTML="");
   c.news.forEach(f=>feedRow("newsRows",f)); c.blitz.feeds.forEach(f=>feedRow("bzRows",f)); c.sport.feeds.forEach(f=>feedRow("spRows",f));
   c.traffic.links.forEach(l=>linkRow("trLinks",l)); c.blitz.links.forEach(l=>linkRow("bzLinks",l)); c.links.forEach(l=>linkRow("qlRows",l));
@@ -250,7 +260,7 @@ function read(){
   return {station:{name:$("stName").value.trim(),tagline:$("stTag").value.trim(),website:$("stWeb").value.trim(),color:$("stColor").value},logo:LOGO,
     location:{name:$("locName").value.trim(),region:$("locRegion").value.trim(),state:$("locState").value,lat:parseFloat(String($("locLat").value).replace(",",".")),
       lon:parseFloat(String($("locLon").value).replace(",",".")),places:list($("locPlaces").value),keywords:list($("locKeys").value)},
-    news:feeds("newsRows"),blitz:{feeds:feeds("bzRows"),links:links("bzLinks")},
+    google_news:$("gnews").checked,news:feeds("newsRows"),blitz:{feeds:feeds("bzRows"),links:links("bzLinks")},
     traffic:{roads:list($("trRoads").value),alert:list($("trAlert").value),radius:+$("trRadius").value||35,links:links("trLinks")},
     sport:{leagues:[...$("lgBox").querySelectorAll("input:checked")].map(i=>i.value),favs:list($("spFavs").value),feeds:feeds("spRows")},
     links:links("qlRows"),
@@ -264,6 +274,7 @@ $("save").onclick=async()=>{
   const c=read();
   if(!c.station.name) return msg("Bitte den Namen des Senders eingeben.",true);
   if(!c.location.name||isNaN(c.location.lat)||isNaN(c.location.lon)) return msg("Bitte den Sendeort über die Ortssuche auswählen (oder Ort und Koordinaten eintragen).",true);
+  if(!c.google_news&&[...c.news,...c.blitz.feeds,...c.sport.feeds].some(f=>f.q)) return msg("Einige Quellen sind Google-News-Suchen. Bitte RSS-Adressen eintragen oder „Google-News-Suchen verwenden“ anhaken.",true);
   let body=c, url="/api/config";
   if(SETUP){
     if($("adPw").value!==$("adPw2").value) return msg("Die beiden Passwörter stimmen nicht überein.",true);

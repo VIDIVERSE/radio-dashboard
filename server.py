@@ -25,7 +25,7 @@ LINKS_FILE = os.path.join(DATA, "links.json")
 LISTEN_FILE = os.path.join(DATA, "listeners.csv")      # Hörerzahl, jede Minute
 ADBREAK_FILE = os.path.join(DATA, "adbreaks.csv")      # Zeitpunkte, zu denen der Werbe-Marker lief
 PLAYLOG_FILE = os.path.join(DATA, "sendeverlauf.tsv")  # gespielte Titel: Zeitstempel <TAB> Titel
-FIXED_HOSTS = {"news.google.com", "verkehr.autobahn.de", "api.openligadb.de", "nameday.abalin.net"}
+FIXED_HOSTS = {"verkehr.autobahn.de", "api.openligadb.de", "nameday.abalin.net", "api.brightsky.dev"}
 CACHE, TTL = {}, 120        # Feeds werden 2 Minuten zwischengespeichert
 SESSIONS = {}               # Token -> {"u": Benutzer, "exp": Ablaufzeit}
 FAILS = {}                  # "IP|Benutzer" -> (Fehlversuche, gesperrt bis)
@@ -46,6 +46,7 @@ DEFAULT_CONFIG = {
     "station": {"name": "", "tagline": "Info-Dashboard", "color": "#e8312f", "website": ""},
     "logo": "",             # Logo als data:-URL
     "location": {"name": "", "lat": 51.163, "lon": 10.448, "state": "", "region": "", "places": [], "keywords": []},
+    "google_news": False,   # Google-News-Suchen erlaubt? (laut Google nur für private, nicht-kommerzielle Nutzung)
     "news": [],             # [{"name", "q" (Google-News-Suche) oder "url" (RSS), "filter"}]
     "blitz": {"feeds": [], "links": []},
     "traffic": {"roads": [], "alert": [], "radius": 35, "links": []},
@@ -116,6 +117,7 @@ def clean_config(d, old):
                      "state": g("location", "state") if g("location", "state") in STATES else "",
                      "region": text(g("location", "region"), 60), "places": text_list(g("location", "places")),
                      "keywords": text_list(g("location", "keywords"))}
+    c["google_news"] = bool(g("google_news"))
     c["news"] = feed_list(g("news"))
     c["blitz"] = {"feeds": feed_list(g("blitz", "feeds"), 8), "links": link_list(g("blitz", "links"), 12)}
     roads = lambda v: [r.upper().replace(" ", "") for r in text_list(v, 15, 6) if re.fullmatch(r"A ?\d{1,3}", r.upper())]
@@ -168,6 +170,8 @@ def configured():
 
 def allowed_hosts():
     hosts = set(FIXED_HOSTS)
+    if CONFIG["google_news"]:
+        hosts.add("news.google.com")
     for f in CONFIG["news"] + CONFIG["blitz"]["feeds"] + CONFIG["sport"]["feeds"]:
         if f.get("url"):
             hosts.add(urllib.parse.urlparse(f["url"]).hostname or "")
